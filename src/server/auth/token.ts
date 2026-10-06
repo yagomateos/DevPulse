@@ -20,10 +20,10 @@ const encoder = new TextEncoder();
 
 function secret() {
   const value = process.env.AUTH_SECRET;
-  if (!value && process.env.NODE_ENV === 'production' && process.env.DEMO_MODE !== 'true') {
-    throw new Error('AUTH_SECRET must be set in production');
-  }
-  return value ?? 'dev-only-insecure-secret-change-me';
+  if (value) return value;
+  // A built-in key is only acceptable for local development and tests.
+  if (process.env.NODE_ENV === 'production') throw new Error('AUTH_SECRET must be set in production');
+  return 'dev-only-insecure-secret-change-me';
 }
 
 function base64url(bytes: Uint8Array) {

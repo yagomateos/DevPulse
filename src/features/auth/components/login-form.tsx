@@ -16,7 +16,7 @@ import { loginSchema, type LoginInput } from '@/schemas/auth';
 import { ROLES } from '@/types/domain';
 import { login } from '../actions';
 
-export function LoginForm({ next }: { next?: string }) {
+export function LoginForm({ next, demoMode }: { next?: string; demoMode: boolean }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [formError, setFormError] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export function LoginForm({ next }: { next?: string }) {
 
   const form = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: 'demo@example.com', password: 'demo123', role: 'ADMIN' },
+    defaultValues: demoMode ? { email: 'demo@example.com', password: 'demo123', role: 'ADMIN' } : { email: '', password: '' },
   });
 
   const onSubmit = (values: LoginInput) => {
@@ -89,6 +89,7 @@ export function LoginForm({ next }: { next?: string }) {
             </FormItem>
           )}
         />
+        {demoMode && (
         <FormField
           control={form.control}
           name="role"
@@ -117,6 +118,7 @@ export function LoginForm({ next }: { next?: string }) {
             </FormItem>
           )}
         />
+        )}
         <Button type="submit" className="w-full" loading={isPending}>
           {isPending ? 'Signing in…' : 'Sign in'}
         </Button>

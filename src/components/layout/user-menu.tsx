@@ -21,12 +21,14 @@ import {
 import { UserAvatar } from '@/components/shared/user-avatar';
 import { logout, switchRole } from '@/features/auth/actions';
 import { useSession } from '@/features/auth/components/session-provider';
+import { useWorkspacePreferences } from '@/features/settings/components/workspace-preferences-provider';
 import { ROLE_DESCRIPTIONS } from '@/lib/permissions';
 import { ROLES, type Role } from '@/types/domain';
 import { ThemeRadioItems } from './theme-menu';
 
 export function UserMenu() {
   const { user } = useSession();
+  const { demoMode } = useWorkspacePreferences();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isPending, startTransition] = useTransition();
@@ -47,7 +49,10 @@ export function UserMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">
         <DropdownMenuLabel className="font-normal">
-          <p className="text-sm font-medium">{user.name}</p>
+          <p className="flex items-center gap-2 text-sm font-medium">
+            {user.name}
+            {demoMode && <span className="rounded bg-warning/15 px-1 text-[10px] font-medium uppercase text-warning">Demo</span>}
+          </p>
           <p className="truncate text-xs text-muted-foreground">{user.email}</p>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -62,6 +67,7 @@ export function UserMenu() {
               <Settings className="mr-2 size-3.5" aria-hidden /> Settings
             </Link>
           </DropdownMenuItem>
+          {demoMode ? (
           <DropdownMenuSub>
             <DropdownMenuSubTrigger disabled={isPending}>
               <ShieldCheck className="mr-2 size-3.5" aria-hidden />
@@ -80,6 +86,12 @@ export function UserMenu() {
               ))}
             </DropdownMenuSubContent>
           </DropdownMenuSub>
+          ) : (
+            <DropdownMenuItem disabled>
+              <ShieldCheck className="mr-2 size-3.5" aria-hidden />
+              Role: <span className="ml-1 text-muted-foreground">{user.role.toLowerCase()}</span>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <Palette className="mr-2 size-3.5" aria-hidden /> Theme
