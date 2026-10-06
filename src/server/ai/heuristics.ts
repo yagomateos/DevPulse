@@ -58,6 +58,8 @@ const DIFF_RULES: DiffRule[] = [
 ];
 
 const TEST_PATH = /(\.test\.|\.spec\.|_test\.go$|\/tests?\/)/;
+/** Files that never need tests: docs, SQL migrations, assets, lockfiles, licences. */
+const NON_CODE_PATH = /(\.(md|mdx|txt|rst|sql|png|jpe?g|gif|svg|ico|webp)$|(^|\/)(LICENSE|CHANGELOG|CODEOWNERS)[^/]*$|(^|\/)docs?\/|(package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$)/i;
 
 export function analyzePullRequestHeuristic(pr: PullRequest): PRAnalysis {
   const findings: PRFinding[] = [];
@@ -93,7 +95,7 @@ export function analyzePullRequestHeuristic(pr: PullRequest): PRAnalysis {
   if (pr.labels.includes('security')) {
     push({ category: 'Security', severity: 'medium', title: 'Security-sensitive change', description: 'The PR modifies authentication/authorisation behaviour. Regressions here are high impact and hard to detect.', file: null, line: null, suggestion: 'Require a second reviewer from the security rotation and add negative tests.' });
   }
-  const sourceFiles = pr.files.filter((f) => !TEST_PATH.test(f.path) && !f.path.endsWith('.sql') && !f.path.endsWith('.mdx'));
+  const sourceFiles = pr.files.filter((f) => !TEST_PATH.test(f.path) && !NON_CODE_PATH.test(f.path));
   const testFiles = pr.files.filter((f) => TEST_PATH.test(f.path));
   if (sourceFiles.length > 0 && testFiles.length === 0) {
     push({ category: 'Testing', severity: 'medium', title: 'No tests accompany the change', description: `${sourceFiles.length} source file(s) changed without corresponding test updates.`, file: sourceFiles[0]!.path, line: null, suggestion: 'Add behaviour tests (React Testing Library / table-driven tests) that cover the new paths.' });
