@@ -4,6 +4,7 @@ import { DeploymentDetail } from '@/features/deployments/components/deployment-d
 import { queryKeys } from '@/lib/query-keys';
 import { Hydrate } from '@/server/hydrate';
 import { getRepository } from '@/server/repositories';
+import { getDeployment } from '@/server/queries';
 
 type Props = { params: Promise<{ projectId: string; deploymentId: string }> };
 
@@ -16,7 +17,7 @@ export default async function DeploymentPage({ params }: Props) {
   const number = Number(deploymentId);
   if (!Number.isInteger(number)) notFound();
   const repo = await getRepository();
-  const [deployment, analysis] = await Promise.all([repo.deployments.get(projectId, number), repo.aiAnalyses.latest('deployment', `${projectId}~${number}`)]);
+  const [deployment, analysis] = await Promise.all([getDeployment(projectId, number), repo.aiAnalyses.latest('deployment', `${projectId}~${number}`)]);
   if (!deployment) notFound();
   return (
     <Hydrate

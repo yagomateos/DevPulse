@@ -4,12 +4,13 @@ import { PullRequestDetail } from '@/features/pull-requests/components/pull-requ
 import { queryKeys } from '@/lib/query-keys';
 import { Hydrate } from '@/server/hydrate';
 import { getRepository } from '@/server/repositories';
+import { getPullRequest, getSettings } from '@/server/queries';
 
 type Props = { params: Promise<{ projectId: string; prId: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { projectId, prId } = await params;
-  const pr = await (await getRepository()).pullRequests.get(projectId, Number(prId));
+  const pr = await getPullRequest(projectId, Number(prId));
   return { title: pr ? `#${pr.number} ${pr.title}` : 'Pull request not found' };
 }
 
@@ -18,7 +19,7 @@ export default async function PullRequestPage({ params }: Props) {
   const number = Number(prId);
   if (!Number.isInteger(number)) notFound();
   const repo = await getRepository();
-  const [pr, analysis] = await Promise.all([repo.pullRequests.get(projectId, number), repo.aiAnalyses.latest('pull_request', `${projectId}#${number}`)]);
+  const [pr, analysis, settings] = await Promise.all([getPullRequest(projectId, number), repo.aiAnalyses.latest('pull_request', `${projectId}#${number}`), getSettings()]);
   if (!pr) notFound();
   return (
     <Hydrate
@@ -27,7 +28,7 @@ export default async function PullRequestPage({ params }: Props) {
         [queryKeys.ai.analysis('pull_request', projectId, prId), analysis],
       ]}
     >
-      <PullRequestDetail projectId={projectId} number={number} />
+      <PullRequestDetail projectId={projectId} number={number} autoAnalyze={settings.ai.autoAnalyzePullRequests} />
     </Hydrate>
   );
 }
