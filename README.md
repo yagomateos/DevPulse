@@ -1,3 +1,272 @@
-# DevPulse
+# AI Engineering Workspace
 
-[![Open in Bolt](https://bolt.new/static/open-in-bolt.svg)](https://bolt.new/~/sb1-ywxp7hjk)
+A SaaS workspace for software teams: projects, pull requests, deployments and incidents, with AI analysis built into each of those workflows.
+
+The project is a **frontend engineering showcase**. Most of the work is in the React and Next.js architecture: composition, state ownership, data fetching, forms, a reusable data table, accessibility, performance and tests. The backend stays deliberately small. Its only job is to support the UI behind a typed seam that can be swapped out.
+
+> **Demo login:** `demo@example.com` / `demo123`. You choose a role (Admin, Manager or Developer) at sign-in and can switch it later from the user menu to explore RBAC.
+> The app runs **fully offline**: in-memory data and a deterministic demo AI model. Add an `AI_API_KEY` to use a real LLM.
+
+---
+
+## Contents
+
+- [Demo flow](#demo-flow)
+- [Tech stack](#tech-stack)
+- [Architecture](#architecture)
+- [Frontend architecture](#frontend-architecture)
+- [React patterns](#react-patterns)
+- [Next.js patterns](#nextjs-patterns)
+- [State management](#state-management)
+- [AI architecture](#ai-architecture)
+- [Accessibility & performance](#accessibility--performance)
+- [Testing](#testing)
+- [Running locally](#running-locally)
+- [Environment variables](#environment-variables)
+- [Deployment](#deployment)
+
+---
+
+## Demo flow
+
+This is the path a reviewer should take. It is covered end to end by `tests/e2e/demo-flow.spec.ts`.
+
+1. **Sign in.** Pick a role. If you open a deep link while signed out, you come back to it after login.
+2. **Dashboard.** KPIs with sparklines and drill-down links. Date range, project and environment filters live in the URL. Charts are interactive.
+3. **Project → Orion API Gateway.** A nested layout with route-driven tabs: Overview · Pull requests · Deployments · Incidents · Activity · Settings.
+4. **Pull request #312.** Run **Analyze with AI** and you get a structured review:
+   - a risk gauge;
+   - findings grouped by category (Security, Performance, Accessibility, Type Safety, Testing, Maintainability);
+   - recommendations;
+   - findings that point at a file and line show up *inline in the diff*.
+5. **Deployment #128.** The pipeline timeline and filterable logs. **Analyze Deployment** returns a cause, evidence and recommended actions. The **Performance** tab shows a before/after comparison around the release.
+6. **Ask AI.** The side panel knows which deployment you are looking at. It streams an answer that cites its sources.
+
+---
+
+## Tech stack
+
+| Area | Choice |
+| --- | --- |
+| Framework | **Next.js 16** (App Router, Turbopack, `proxy.ts`), **React 19** |
+| Language | **TypeScript** strict, plus `noUncheckedIndexedAccess` |
+| UI | Tailwind CSS (design tokens, dark-first), **shadcn/ui** on Radix, Lucide, cmdk, vaul |
+| Server state | **TanStack Query v5** |
+| Client state | **Zustand** |
+| Forms | **React Hook Form** + **Zod**. The same schemas run on the client, in route handlers and on AI output. |
+| Tables | **TanStack Table v8**, wrapped in a reusable `<DataTable />` |
+| Charts | **Recharts** (lazy-loaded) |
+| Backend | Next.js Route Handlers + Server Actions |
+| Database | **PostgreSQL** + **Drizzle ORM** (optional; in-memory by default) |
+| AI | Any **OpenAI-compatible** Chat Completions API: streaming, structured outputs, tool calling |
+| Testing | **Vitest**, **React Testing Library**, **Playwright**, PGlite for SQL integration tests |
+| Infra | Docker (standalone output), docker-compose with Postgres, GitHub Actions |
+
+---
+
+## Architecture
+
+```
+Browser ─────────────────────────────────────────────────────────────────────
+  Client Components  ·  TanStack Query cache  ·  URL state  ·  Zustand UI state
+        ▲ hydrate (dehydrated cache)        │ fetch /api/* (typed services)
+Next.js server ─────────────────────────────┼──────────────────────────────────
+  proxy.ts (signed-cookie check)            ▼
+  Server Components (layouts, pages, metadata, Suspense streaming)
+  Route Handlers + Server Actions (Zod validation, RBAC, NDJSON AI stream)
+Domain & data ───────────────────────────────────────────────────────────────
+  Repository interface ──► memory (demo)  |  PostgreSQL via Drizzle
+  AI module ──► OpenAI-compatible client  |  deterministic demo model
+```
+
+- **One data seam.** Server Components and Route Handlers only talk to the `Repository` interface (`src/server/repositories/types.ts`). `DATA_SOURCE=postgres` swaps the in-memory store for Drizzle without touching the UI.
+- **The mock API behaves like a real network.** It has latency, random failures, server-side filtering, sorting and pagination. You can tune it in **Settings → General → Demo network conditions**, so loading, error and retry states are easy to observe.
+- The in-app **`/architecture`** page documents the technical decisions and includes a diagram.
+
+## Frontend architecture
+
+```
+src/
+  app/            routes: (auth)/login, (workspace)/… nested layouts, api/ route handlers
+  components/     design system (ui/), data-table/, feedback/, layout/, status/, shared/
+  features/       ai · auth · dashboard · projects · pull-requests · deployments
+                  incidents · team · settings · search · notifications · architecture
+  hooks/          useMediaQuery, useUrlState, useHotkeys, useDebouncedValue, useNow
+  lib/            http client (ApiError), query keys, permissions, formatting, forms
+  services/       typed API clients + TanStack `queryOptions` factories
+  stores/         Zustand: ui, command palette, AI panel context stack, dialogs, table prefs
+  schemas/        Zod: forms, list queries, AI structured outputs
+  server/         auth, repositories (memory | postgres), AI, db (Drizzle schema & seed)
+  proxy.ts        optimistic route protection
+```
+
+- **Each feature owns its UI, hooks and logic.** Pages are thin. Most are under 40 lines and only compose feature components.
+- **`components/` is shared and domain-agnostic.** It holds the design system plus cross-cutting primitives: `DataTable`, `ErrorState`, `EmptyState`, `LoadingSkeleton`, `RetryButton`, `QueryState`.
+- **Business rules stay out of visual components.** Permissions live in `lib/permissions.ts`, analysis in `server/ai/heuristics.ts`, and filtering and sorting in the repositories.
+
+## React patterns
+
+- **Composition and render props.** `AnalysisPanel` owns the AI lifecycle (idle → progress → error → result). Each domain passes its own renderer for the result.
+- **Reusable `<DataTable />`:**
+  - client mode or server mode (`manual`);
+  - search, faceted filters, sorting and pagination synced to the URL;
+  - column visibility persisted per table;
+  - row selection with bulk actions;
+  - roving-tabindex keyboard navigation (↑ ↓ Home End Enter Space);
+  - a card layout on mobile, plus loading, empty and error states.
+
+  It is used for pull requests, deployments, incidents, team and projects.
+- **Custom hooks:**
+  - data: `useProjects`, `useProject`, `usePullRequests`, `usePullRequest`, `useDeployments`, `useDeployment`, `useIncidents`, `useIncident`, `useMetrics`;
+  - AI: `useAIAnalysis`, `useChat`;
+  - app-wide: `useGlobalSearch`, `useCommandPalette`, `usePermissions`;
+  - browser and URL: `useMediaQuery` (`useSyncExternalStore`), `useUrlState`, `useHotkeys`.
+- **Optimistic UI** with rollback for:
+  - incident status changes;
+  - project settings;
+  - role changes and member removal;
+  - marking notifications as read.
+- **Controlled and uncontrolled inputs where each fits:**
+  - the toolbar search is controlled, with a debounced commit to the URL;
+  - forms are uncontrolled, through React Hook Form;
+  - the tag input is a controlled component.
+- **Derived state over effects.** Session expiry, drawer auto-close and search-input sync use the "adjust state during render" pattern instead of `useEffect` chains.
+- **Context only where it fits.** The authenticated user comes from the server once, through `SessionProvider`. Server data never lives in context.
+
+## Next.js patterns
+
+- **App Router with nested layouts.** The project header and tabs stay mounted while the tab content changes. Tabs are real routes.
+- **Server Components by default:**
+  - pages read the repository directly, with no HTTP hop;
+  - they seed the client cache via `<Hydrate>` (`HydrationBoundary`);
+  - the dashboard streams its sections behind `<Suspense>`.
+
+  `AppShell` itself is a Server Component that wraps small client islands.
+- **Client Components only for interaction:** tables, forms, charts, the palette and chat.
+- **Special files.** `loading.tsx`, `error.tsx` and `not-found.tsx` exist at the workspace, project and detail levels. `global-error.tsx` sits at the root.
+- **Route Handlers.** There are 26 typed endpoints. Each validates input with Zod and maps errors to a uniform `{ error: { message, status, issues } }`.
+- **Server Actions** handle login, logout, role switching and simulated session expiry.
+- **`proxy.ts`** (Next 16's middleware) does an optimistic signed-cookie check and redirects to `/login?next=…` with a `reason=expired` flag. Authoritative checks happen again in layouts and handlers.
+- **Metadata.** Each route has a title template, plus `generateMetadata` on dynamic routes.
+
+## State management
+
+| Kind of state | Owner | Examples |
+| --- | --- | --- |
+| Server state | **TanStack Query** | lists, details, metrics, AI analyses. Hierarchical keys in `lib/query-keys.ts`. |
+| Client UI state | **Zustand** | sidebar, command palette, AI panel context stack, global dialogs, column preferences |
+| URL state | **search params** | table filters, sorting and paging; dashboard range; tabs; preview drawer; assistant scope |
+| Form state | **React Hook Form + Zod** | create project/incident, invite member, project settings, six settings sections, login |
+
+URL updates go through the History API, which the App Router keeps in sync with `useSearchParams`. Filters stay shareable and still feel instant, with no server round trip.
+
+## AI architecture
+
+- **Structured outputs.** `prAnalysisSchema`, `deploymentAnalysisSchema` and `incidentAnalysisSchema` are Zod schemas. They are:
+  - converted to strict JSON Schema for `response_format`;
+  - validated on the server;
+  - inferred as TypeScript types for the components that render them.
+- **Tool calling.** The assistant can call `list_incidents`, `list_deployments`, `list_pull_requests`, `get_project_health` and `get_recent_activity` against the repository. Tool results become citations.
+- **Streaming.** `/api/ai/chat` streams NDJSON events (`status` → `sources` → `text` → `done` | `error`). The `useChat` hook handles optimistic messages, abort and retry. Messages are memoised, so only the message being streamed re-renders on each token.
+- **Contextual panel.** Pages register what the user is looking at in a context *stack*: project layout → PR page. The global **Ask AI** panel always answers about the current entity.
+- **Demo model.** With no API key, a deterministic rule-based analyser reads the real diff, checks, logs and timeline. It returns output that satisfies the same schemas. This keeps the app useful offline and the tests deterministic.
+
+## Accessibility & performance
+
+**Accessibility**
+- Semantic landmarks and a skip link.
+- `aria-sort` on table headers, live regions for streaming, and labelled dialogs and drawers (focus trap and restore come from Radix).
+- Full keyboard support:
+  - the palette (`⌘K`, `/`) and `g` + key navigation;
+  - table rows and timeline filters;
+  - `aria-pressed` toggles on interactive controls.
+- Visible focus rings, contrast-checked tokens in both themes, and `prefers-reduced-motion` support.
+
+**Performance**
+- Server rendering and streaming.
+- `next/dynamic` for Recharts, the markdown renderer and dialog forms.
+- `optimizePackageImports` for icon and chart packages.
+- `useDeferredValue` for log filtering.
+- Debounced, abortable search.
+- Query caching with stale times that fit each data type.
+
+## Testing
+
+```bash
+npm test              # Vitest: unit + component + SQL integration (68 tests)
+npm run test:coverage
+npm run test:e2e      # Playwright: desktop + mobile journeys (12 tests)
+```
+
+- **Unit tests** cover permissions, schemas, formatting, the session token (including tampering and expiry), the memory repository and the demo AI model. A separate test parses NDJSON split across network chunks.
+- **Component tests** (RTL + user-event) cover behaviour, not just rendering:
+  - DataTable: sorting, debounced search, facets, column visibility, keyboard navigation, selection, loading and error states;
+  - PR detail: AI analysis, jumping from a finding to the diff, error and retry;
+  - IncidentTimeline: filtering and expanding events;
+  - the dashboard metric grid: URL-driven query, error recovery;
+  - the create-incident form: client and server validation;
+  - the projects grid/list toggle;
+  - `PermissionGate`, `useChat` (streaming and retry) and `useMediaQuery`.
+- **SQL integration test.** It applies the generated Drizzle migration to **PGlite**, a real Postgres engine running as WASM, seeds it and exercises the Postgres repository.
+- **Playwright journeys:**
+  - login and redirect-back, invalid credentials, unauthorised API access, logout;
+  - RBAC, checked in both the UI and the API;
+  - dashboard filters and drill-down;
+  - the full demo flow;
+  - declaring an incident from the command palette;
+  - AI incident investigation;
+  - global search with the keyboard;
+  - mobile drawer and card layouts.
+
+## Running locally
+
+Requirements: Node.js ≥ 22 (24 recommended).
+
+```bash
+npm install
+npm run dev          # http://localhost:3000 — sign in with demo@example.com / demo123
+```
+
+Quality gate:
+
+```bash
+npm run validate     # lint + typecheck + unit tests
+npx playwright install chromium && npm run test:e2e
+```
+
+### With PostgreSQL
+
+```bash
+docker compose up -d db
+cp .env.example .env.local    # set DATA_SOURCE=postgres
+npm run db:push && npm run db:seed
+npm run dev
+```
+
+Or run the whole stack in containers:
+
+```bash
+docker compose up --build -d
+docker compose run --rm migrate   # create tables and seed demo data
+```
+
+## Environment variables
+
+All variables are optional. See [`.env.example`](.env.example).
+
+| Variable | Purpose |
+| --- | --- |
+| `AUTH_SECRET` | HMAC key for session cookies. **Required in production** unless `DEMO_MODE=true`. |
+| `DATA_SOURCE` | `memory` (default) or `postgres` |
+| `DATABASE_URL` | Postgres connection string |
+| `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` | Any OpenAI-compatible endpoint. Without a key, the demo model is used. |
+| `MOCK_NETWORK=off` | Disables simulated latency and failures (used in tests) |
+| `INSECURE_COOKIES=true` | Allows the session cookie over plain HTTP (local Docker) |
+
+## Deployment
+
+- **Vercel / Node hosting.** `npm run build && npm start`. Set `AUTH_SECRET` and, optionally, the AI and database variables.
+- **Docker.** A multi-stage `Dockerfile` builds Next.js `standalone` output into a small, non-root image with a healthcheck.
+- **CI.** `.github/workflows/ci.yml` runs lint, typecheck and unit tests with coverage. It then runs the production build plus Playwright, and builds the Docker image.
+
+The in-memory store resets when the server restarts. Use `DATA_SOURCE=postgres` for persistent data.

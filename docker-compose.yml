@@ -1,0 +1,44 @@
+# Full stack: the app backed by PostgreSQL.
+#   docker compose up --build
+#   docker compose run --rm migrate   # create tables + seed demo data
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: aiw
+      POSTGRES_PASSWORD: aiw
+      POSTGRES_DB: aiw
+    ports: ['5432:5432']
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U aiw']
+      interval: 5s
+      retries: 10
+
+  migrate:
+    image: node:24-alpine
+    working_dir: /app
+    volumes: ['./:/app']
+    environment:
+      DATABASE_URL: postgres://aiw:aiw@db:5432/aiw
+    command: sh -c "npx drizzle-kit push --force && npx tsx src/server/db/seed.ts"
+    depends_on:
+      db: { condition: service_healthy }
+    profiles: [tools]
+
+  app:
+    build: .
+    ports: ['3000:3000']
+    environment:
+      DATA_SOURCE: postgres
+      DATABASE_URL: postgres://aiw:aiw@db:5432/aiw
+      AUTH_SECRET: ${AUTH_SECRET:-local-docker-secret-change-me}
+      INSECURE_COOKIES: 'true'
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
+      AI_MODEL: ${AI_MODEL:-gpt-4.1-mini}
+    depends_on:
+      db: { condition: service_healthy }
+
+volumes:
+  pgdata:
