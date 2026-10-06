@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Highlight } from '@/features/search/components/highlight';
-import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { LogEntry, LogLevel } from '@/types/domain';
+import { useDateFormatter } from '@/features/settings/components/workspace-preferences-provider';
 
 const LEVELS: LogLevel[] = ['info', 'warn', 'error'];
 const LEVEL_TONE: Record<LogLevel, string> = { debug: 'text-muted-foreground', info: 'text-info', warn: 'text-warning', error: 'text-destructive' };
@@ -19,6 +19,7 @@ const LEVEL_TONE: Record<LogLevel, string> = { debug: 'text-muted-foreground', i
  * useDeferredValue keeps typing responsive while the list re-filters.
  */
 export function DeploymentLogs({ logs }: { logs: LogEntry[] }) {
+  const formatDate = useDateFormatter();
   const [levels, setLevels] = useState<string[]>(LEVELS);
   const [search, setSearch] = useState('');
   const [wrap, setWrap] = useState(false);
@@ -67,7 +68,7 @@ export function DeploymentLogs({ logs }: { logs: LogEntry[] }) {
             {visible.map((l, i) => (
               <li key={l.id} className={cn('flex gap-3 px-3 hover:bg-muted/40', l.level === 'error' && 'bg-destructive/5', l.level === 'warn' && 'bg-warning/5')}>
                 <span className="w-6 shrink-0 select-none text-right text-muted-foreground/60">{i + 1}</span>
-                <span className="shrink-0 text-muted-foreground">{formatDateTime(l.timestamp, 'HH:mm:ss')}</span>
+                <span className="shrink-0 text-muted-foreground">{formatDate(l.timestamp, 'time-seconds')}</span>
                 <span className={cn('w-11 shrink-0 font-semibold uppercase', LEVEL_TONE[l.level])}>{l.level}</span>
                 <span className="w-24 shrink-0 truncate text-muted-foreground">[{l.source}]</span>
                 <span className={cn(wrap ? 'whitespace-pre-wrap break-all' : 'whitespace-pre')}>

@@ -1,10 +1,14 @@
+'use client';
+
 import { CheckStatusIcon } from '@/components/status/status-badges';
-import { formatDateTime, formatDuration } from '@/lib/format';
+import { formatDuration } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { DeploymentStage } from '@/types/domain';
+import { useDateFormatter } from '@/features/settings/components/workspace-preferences-provider';
 
 /** Pipeline stages as a horizontal timeline (vertical on mobile). */
 export function DeploymentTimeline({ stages }: { stages: DeploymentStage[] }) {
+  const formatDate = useDateFormatter();
   const total = stages.reduce((a, s) => a + s.durationSeconds, 0) || 1;
   return (
     <div className="space-y-3">
@@ -31,7 +35,7 @@ export function DeploymentTimeline({ stages }: { stages: DeploymentStage[] }) {
             </span>
             <span className="ml-auto text-[11px] text-muted-foreground sm:ml-0">
               {s.durationSeconds ? formatDuration(s.durationSeconds) : s.status}
-              {s.startedAt && <span className="hidden sm:inline"> · {formatDateTime(s.startedAt, 'HH:mm:ss')}</span>}
+              {s.startedAt && <span className="hidden sm:inline"> · {formatDate(s.startedAt, 'time-seconds')}</span>}
             </span>
           </li>
         ))}

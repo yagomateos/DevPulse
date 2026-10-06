@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -19,6 +20,7 @@ export function GeneralSettingsForm({ defaults }: { defaults: GeneralSettings })
   const { can } = usePermissions();
   const readOnly = !can('settings:workspace');
   const update = useUpdateSettings('general');
+  const router = useRouter();
   const form = useForm<GeneralSettings>({ resolver: zodResolver(generalSettingsSchema), defaultValues: defaults });
 
   const onSubmit = (values: GeneralSettings) =>
@@ -26,6 +28,8 @@ export function GeneralSettingsForm({ defaults }: { defaults: GeneralSettings })
       onSuccess: () => {
         form.reset(values);
         toast.success('Workspace settings saved');
+        // Time zone is applied by the server layout; refresh to re-render with it.
+        router.refresh();
       },
       onError: (e) => toast.error(applyServerErrors(form, e)),
     });

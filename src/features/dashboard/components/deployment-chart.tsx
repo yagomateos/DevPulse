@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { axisProps, CHART_COLORS, ChartLegend, ChartTooltip, type SeriesConfig } from '@/components/charts/chart-primitives';
-import { formatDateTime } from '@/lib/format';
+import { useDateFormatter } from '@/features/settings/components/workspace-preferences-provider';
+import type { DatePreset } from '@/lib/format';
 import type { DateRange, DeploymentSeriesPoint } from '@/types/domain';
 
 const SERIES: SeriesConfig[] = [
@@ -12,14 +13,20 @@ const SERIES: SeriesConfig[] = [
   { key: 'failed', label: 'Failed', color: CHART_COLORS.danger },
 ];
 
-export const bucketLabel = (range: DateRange) => (iso: string) => formatDateTime(iso, range === '24h' ? 'HH:mm' : 'MMM d');
+export const bucketPreset = (range: DateRange): DatePreset => (range === '24h' ? 'time' : 'day');
+
+/** Bucket labels in the workspace time zone. */
+export function useBucketLabel(range: DateRange) {
+  const format = useDateFormatter();
+  return (iso: string) => format(iso, bucketPreset(range));
+}
 
 /** Stacked deployments per bucket. Clicking a bar drills into the deployments list. */
 export default function DeploymentChart({ data, range, projectId }: { data: DeploymentSeriesPoint[]; range: DateRange; projectId?: string }) {
   const router = useRouter();
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const toggle = (key: string) => setHidden((h) => (h.has(key) ? new Set([...h].filter((k) => k !== key)) : new Set(h).add(key)));
-  const label = bucketLabel(range);
+  const label = useBucketLabel(range);
   const total = data.reduce((a, d) => a + d.success + d.failed, 0);
   const failed = data.reduce((a, d) => a + d.failed, 0);
 

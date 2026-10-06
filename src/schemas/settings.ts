@@ -16,16 +16,13 @@ export const accountSettingsSchema = z.object({
   title: z.string().trim().max(64),
 });
 
+/** Which events reach the in-app notification inbox (applied server-side). */
 export const notificationSettingsSchema = z.object({
-  email: z.object({
+  inApp: z.object({
     incidents: z.boolean(),
     deployments: z.boolean(),
     reviews: z.boolean(),
-    weeklyDigest: z.boolean(),
-  }),
-  inApp: z.object({
     mentions: z.boolean(),
-    assignments: z.boolean(),
   }),
   minimumSeverity: z.enum(['sev1', 'sev2', 'sev3', 'sev4']),
 });

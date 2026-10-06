@@ -12,10 +12,10 @@ import { FormFooter } from '@/components/shared/form-footer';
 import { expireSessionSoon, logout } from '@/features/auth/actions';
 import { useSession } from '@/features/auth/components/session-provider';
 import { applyServerErrors } from '@/lib/forms';
-import { formatDateTime } from '@/lib/format';
 import { securitySettingsSchema, type SecuritySettingsInput } from '@/schemas/settings';
 import { useChangePassword } from '../hooks/use-settings';
 import { SettingsSection } from './settings-section';
+import { useDateFormatter, useWorkspacePreferences } from '@/features/settings/components/workspace-preferences-provider';
 
 function PasswordForm() {
   const change = useChangePassword();
@@ -63,6 +63,8 @@ function PasswordForm() {
 }
 
 export function SecuritySettings() {
+  const formatDate = useDateFormatter();
+  const { demoMode } = useWorkspacePreferences();
   const { expiresAt, setExpiresAt } = useSession();
   const [isPending, startTransition] = useTransition();
   return (
@@ -73,9 +75,10 @@ export function SecuritySettings() {
       <SettingsSection title="Session" description="Sessions are signed, http-only cookies that expire automatically.">
         <p className="flex items-center gap-2 text-sm">
           <Clock className="size-4 text-muted-foreground" aria-hidden />
-          Current session expires at <span className="font-medium">{formatDateTime(new Date(expiresAt), 'PPp')}</span>
+          Current session expires at <span className="font-medium">{formatDate(new Date(expiresAt), 'long')}</span>
         </p>
         <div className="flex flex-wrap gap-2">
+          {demoMode && (
           <Button
             variant="outline"
             size="sm"
@@ -90,6 +93,7 @@ export function SecuritySettings() {
           >
             Simulate expiry in 10s
           </Button>
+          )}
           <Button variant="ghost" size="sm" onClick={() => startTransition(() => logout())}>
             <LogOut /> Sign out
           </Button>

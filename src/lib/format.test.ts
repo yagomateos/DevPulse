@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDelta, formatDuration, percentChange } from './format';
+import { formatDateTime, formatDelta, formatDuration, percentChange } from './format';
 import { initials, pluralize } from './utils';
 
 describe('formatting helpers', () => {
@@ -26,5 +26,21 @@ describe('formatting helpers', () => {
     expect(initials('Alex')).toBe('A');
     expect(pluralize(1, 'incident')).toBe('1 incident');
     expect(pluralize(1200, 'user')).toBe('1,200 users');
+  });
+});
+
+describe('formatDateTime (workspace time zone)', () => {
+  const iso = '2026-10-05T07:33:00.000Z';
+
+  it('renders the same instant in the configured zone, independent of the host zone', () => {
+    expect(formatDateTime(iso, 'time', 'UTC')).toBe('07:33');
+    expect(formatDateTime(iso, 'time', 'Europe/Madrid')).toBe('09:33');
+    expect(formatDateTime(iso, 'time', 'America/New_York')).toBe('03:33');
+  });
+
+  it('falls back to UTC for unknown zones and handles empty values', () => {
+    expect(formatDateTime(iso, 'time', 'Mars/Olympus')).toBe('07:33');
+    expect(formatDateTime(null)).toBe('—');
+    expect(formatDateTime('not a date')).toBe('—');
   });
 });

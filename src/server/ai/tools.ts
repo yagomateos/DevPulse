@@ -124,7 +124,7 @@ export const TOOL_STATUS: Record<string, string> = {
 };
 
 /** Resolves the entity the user is looking at into prompt context + a source chip. */
-export async function describeContext(repo: Repository, context: AIContext): Promise<{ text: string; source: SourceRef | null; projectId?: string }> {
+export async function describeContext(repo: Repository, context: AIContext, { includeLogs = true }: { includeLogs?: boolean } = {}): Promise<{ text: string; source: SourceRef | null; projectId?: string }> {
   if (!context.id) return { text: 'The user is on the workspace-level view.', source: null };
   if (context.type === 'project') {
     const p = await repo.projects.get(context.id);
@@ -137,7 +137,7 @@ export async function describeContext(repo: Repository, context: AIContext): Pro
   }
   if (context.type === 'deployment') {
     const d = await repo.deployments.getById(context.id);
-    return d ? { text: `Current deployment: #${d.number} to ${d.environment}, status ${d.status}, commit ${d.commitSha} “${d.commitMessage}”. Errors: ${d.logs.filter((l) => l.level === 'error').map((l) => l.message).join(' | ') || 'none'}. p95 ${d.performance.before.p95LatencyMs}ms → ${d.performance.after?.p95LatencyMs ?? 'n/a'}ms.`, source: { type: 'deployment', id: d.id, label: `Deployment #${d.number}`, href: `/projects/${d.projectId}/deployments/${d.number}` }, projectId: d.projectId } : { text: '', source: null };
+    return d ? { text: `Current deployment: #${d.number} to ${d.environment}, status ${d.status}, commit ${d.commitSha} “${d.commitMessage}”. Errors: ${includeLogs ? d.logs.filter((l) => l.level === 'error').map((l) => l.message).join(' | ') || 'none' : 'not shared (logs disabled in AI settings)'}. p95 ${d.performance.before.p95LatencyMs}ms → ${d.performance.after?.p95LatencyMs ?? 'n/a'}ms.`, source: { type: 'deployment', id: d.id, label: `Deployment #${d.number}`, href: `/projects/${d.projectId}/deployments/${d.number}` }, projectId: d.projectId } : { text: '', source: null };
   }
   const i = await repo.incidents.get(context.id);
   return i ? { text: `Current incident: ${i.reference} “${i.title}” ${i.severity}, ${i.status}, service ${i.service}, related deployment ${i.relatedDeploymentId ?? 'none'}. Timeline: ${i.timeline.map((e) => `${e.type}: ${e.title}`).join('; ')}`, source: { type: 'incident', id: i.id, label: `${i.reference} · ${i.title}`, href: `/projects/${i.projectId}/incidents/${i.id}` }, projectId: i.projectId } : { text: '', source: null };

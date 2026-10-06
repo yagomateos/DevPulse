@@ -18,10 +18,10 @@ function dedupe(sources: SourceRef[]) {
 export async function* streamChat(repo: Repository, request: ChatRequest, signal?: AbortSignal): AsyncGenerator<ChatStreamEvent> {
   const settings = (await repo.settings.get()).ai;
   const config = getAIConfig(settings.model);
-  const context = await describeContext(repo, request.context);
+  const context = await describeContext(repo, request.context, { includeLogs: settings.includeLogs });
 
   if (!config.live) {
-    yield* demoChat(repo, request, context, signal);
+    yield* demoChat(repo, request, context, settings.includeLogs, signal);
     return;
   }
 
@@ -101,7 +101,7 @@ const relTime = (iso: string) => {
   return `${Math.round(minutes / 1440)} d ago`;
 };
 
-async function* demoChat(repo: Repository, request: ChatRequest, context: Awaited<ReturnType<typeof describeContext>>, signal?: AbortSignal): AsyncGenerator<ChatStreamEvent> {
+async function* demoChat(repo: Repository, request: ChatRequest, context: Awaited<ReturnType<typeof describeContext>>, includeLogs: boolean, signal?: AbortSignal): AsyncGenerator<ChatStreamEvent> {
   const question = request.messages.at(-1)?.content ?? '';
   const intent = detectIntent(question, !!context.source);
   const projectId = request.context.type === 'workspace' ? undefined : context.projectId;
@@ -129,7 +129,7 @@ async function* demoChat(repo: Repository, request: ChatRequest, context: Awaite
       if (deployment) {
         sources.push({ type: 'deployment', id: deployment.id, label: `Deployment #${deployment.number} · ${deployment.environment}`, href: `/projects/${deployment.projectId}/deployments/${deployment.number}` });
         const minutes = Math.round((new Date(latest.createdAt).getTime() - new Date(deployment.startedAt).getTime()) / 60_000);
-        const errors = deployment.logs.filter((l) => l.level === 'error').slice(0, 2);
+        const errors = includeLogs ? deployment.logs.filter((l) => l.level === 'error').slice(0, 2) : [];
         answer = `The latest incident, **${latest.ref} — ${latest.title}** (${latest.severity.toUpperCase()}), was most likely caused by **Deployment #${deployment.number}** to ${deployment.environment}.\n\n**Why I think so**\n- The deployment of \`${deployment.commitSha}\` started **${minutes} minutes** before the incident was opened.\n- Its status is **${deployment.status}**${deployment.tests.failed ? ` and it shipped with ${deployment.tests.failed} failing tests` : ''}.\n${errors.map((e) => `- Log \`${e.source}\`: “${e.message}”`).join('\n')}\n- p95 latency went from ${deployment.performance.before.p95LatencyMs}ms to ${deployment.performance.after?.p95LatencyMs ?? 'n/a'}ms.\n\n**Suggested next step:** open the deployment’s *Performance* tab and run **Analyze Deployment** for a structured root-cause report.`;
       } else {
         answer = `The latest incident is **${latest.ref} — ${latest.title}**. No deployment is linked to it, so the cause is likely environmental. Try **Investigate with AI** on the incident page.`;

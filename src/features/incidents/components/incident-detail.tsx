@@ -11,13 +11,15 @@ import { AskAIButton } from '@/features/ai/components/ask-ai-button';
 import { useAIAnalysis } from '@/features/ai/hooks/use-ai-analysis';
 import { useRegisterAIContext } from '@/features/ai/hooks/use-register-ai-context';
 import { useNow } from '@/hooks/use-now';
-import { formatDateTime, formatNumber } from '@/lib/format';
+import { formatNumber } from '@/lib/format';
 import { useIncident } from '../hooks/use-incidents';
 import { IncidentAnalysisResult } from './incident-analysis-result';
 import { IncidentStatusControl } from './incident-status-control';
 import { IncidentTimeline } from './incident-timeline';
+import { useDateFormatter } from '@/features/settings/components/workspace-preferences-provider';
 
 export function IncidentDetail({ projectId, incidentId }: { projectId: string; incidentId: string }) {
+  const formatDate = useDateFormatter();
   const { data: incident } = useIncident(incidentId);
   const ai = useAIAnalysis({ kind: 'incident', projectId, key: incidentId });
   useRegisterAIContext({ type: 'incident', id: incidentId, label: incidentId.toUpperCase() });
@@ -106,7 +108,7 @@ export function IncidentDetail({ projectId, incidentId }: { projectId: string; i
                 <Link href={`/projects/${projectId}/deployments/${deploymentNumber}`} className="flex items-center gap-2 rounded-md border p-2.5 text-sm hover:border-primary/40">
                   <Rocket className="size-4 text-muted-foreground" aria-hidden />
                   Deployment #{deploymentNumber}
-                  <span className="ml-auto text-xs text-muted-foreground">{formatDateTime(incident.timeline.find((e) => e.type === 'deployment')?.occurredAt, 'HH:mm')}</span>
+                  <span className="ml-auto text-xs text-muted-foreground">{formatDate(incident.timeline.find((e) => e.type === 'deployment')?.occurredAt, 'time')}</span>
                 </Link>
               </CardContent>
             </Card>

@@ -3,7 +3,7 @@
 import { ArrowRight, FileCode2, GitBranch, GitCommit, ListChecks, MessageSquare, Rocket } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { RelativeTime } from '@/components/shared/relative-time';
 import { UserAvatar } from '@/components/shared/user-avatar';
 import { DeploymentStatusBadge, EnvironmentBadge, PRStatusBadge, ReviewStatusBadge, RiskBadge } from '@/components/status/status-badges';
@@ -15,6 +15,7 @@ import { AnalysisPanel } from '@/features/ai/components/analysis-panel';
 import { AskAIButton } from '@/features/ai/components/ask-ai-button';
 import { useAIAnalysis } from '@/features/ai/hooks/use-ai-analysis';
 import { useRegisterAIContext } from '@/features/ai/hooks/use-register-ai-context';
+import { usePermissions } from '@/features/auth/hooks/use-permissions';
 import { useDeployments } from '@/features/deployments/hooks/use-deployments';
 import { useUrlState } from '@/hooks/use-url-state';
 import { usePullRequest } from '../hooks/use-pull-requests';
@@ -27,7 +28,7 @@ const Markdown = dynamic(() => import('@/features/ai/components/ai-response'), {
 const TABS = ['conversation', 'commits', 'files', 'checks'] as const;
 type Tab = (typeof TABS)[number];
 
-export function PullRequestDetail({ projectId, number }: { projectId: string; number: number }) {
+export function PullRequestDetail({ projectId, number, autoAnalyze = false }: { projectId: string; number: number; autoAnalyze?: boolean }) {
   const { data: pr } = usePullRequest(projectId, number);
   const url = useUrlState();
   const tabParam = url.get('tab') as Tab | null;
@@ -36,6 +37,18 @@ export function PullRequestDetail({ projectId, number }: { projectId: string; nu
   const ai = useAIAnalysis({ kind: 'pull_request', projectId, key: String(number) });
   const deployments = useDeployments({ projectId, pageSize: 50 });
   useRegisterAIContext({ type: 'pull_request', id: `${projectId}#${number}`, label: `PR #${number}` });
+  const { can } = usePermissions();
+
+  // Settings → AI → "Automatically review pull requests": run once for open PRs with no analysis yet.
+  const autoStarted = useRef(false);
+  const shouldAutoAnalyze = autoAnalyze && can('ai:analyze') && !ai.isLoadingPrevious && !ai.analysis && !ai.isAnalyzing && !ai.error && (pr?.status === 'open' || pr?.status === 'draft');
+  const { analyze } = ai;
+  useEffect(() => {
+    if (shouldAutoAnalyze && !autoStarted.current) {
+      autoStarted.current = true;
+      analyze();
+    }
+  }, [shouldAutoAnalyze, analyze]);
 
   if (!pr) return null;
   const findings = ai.analysis?.result.findings ?? [];

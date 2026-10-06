@@ -1,10 +1,15 @@
-import { formatDateTime, formatRelative } from '@/lib/format';
+'use client';
 
-/** Semantic <time> with an absolute timestamp tooltip. */
+import { useDateFormatter } from '@/features/settings/components/workspace-preferences-provider';
+import { formatRelative } from '@/lib/format';
+
+/** Semantic <time> with an absolute timestamp (workspace time zone) as tooltip. */
 export function RelativeTime({ value, className }: { value: string | null | undefined; className?: string }) {
+  const format = useDateFormatter();
   if (!value) return <span className={className}>—</span>;
   return (
-    <time dateTime={value} title={formatDateTime(value, 'PPpp')} className={className} suppressHydrationWarning>
+    // Relative text depends on "now", which differs by a few ms between server and client.
+    <time dateTime={value} title={format(value, 'full')} className={className} suppressHydrationWarning>
       {formatRelative(value)}
     </time>
   );

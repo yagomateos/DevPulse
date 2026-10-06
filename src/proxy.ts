@@ -17,7 +17,7 @@ export async function proxy(request: NextRequest) {
   if (isPublic) {
     // Signed-in users don't need the login page.
     if (pathname === '/login' && result.status === 'valid') {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      return NextResponse.redirect(new URL('/', request.url)); // → default landing page
     }
     return NextResponse.next();
   }

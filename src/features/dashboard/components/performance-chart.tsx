@@ -5,7 +5,7 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 import { axisProps, CHART_COLORS, ChartTooltip } from '@/components/charts/chart-primitives';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import type { DateRange, PerformanceSeriesPoint } from '@/types/domain';
-import { bucketLabel } from './deployment-chart';
+import { useBucketLabel } from './deployment-chart';
 
 const METRICS = {
   p95LatencyMs: { label: 'p95 latency', unit: 'ms', color: CHART_COLORS.primary, format: (v: number) => `${Math.round(v)} ms` },
@@ -16,7 +16,7 @@ type MetricKey = keyof typeof METRICS;
 export default function PerformanceChart({ data, range }: { data: PerformanceSeriesPoint[]; range: DateRange }) {
   const [metric, setMetric] = useState<MetricKey>('p95LatencyMs');
   const config = METRICS[metric];
-  const label = bucketLabel(range);
+  const label = useBucketLabel(range);
   const latest = data.at(-1)?.[metric];
 
   return (

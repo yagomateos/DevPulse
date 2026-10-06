@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { createIncidentSchema } from '@/schemas/incident';
 import { incidentQuerySchema } from '@/schemas/query';
-import { requirePermission, requireSession } from '@/server/auth/session';
-import { HttpError } from '@/server/auth/session';
+import { HttpError, requirePermission, requireSession } from '@/server/auth/session';
 import { parseBody, parseSearchParams, route } from '@/server/http';
+import { dispatchIncidentIntegrations } from '@/server/integrations';
 import { getRepository } from '@/server/repositories';
 
 export const GET = route(async (request) => {
@@ -17,5 +17,7 @@ export const POST = route(async (request) => {
   const input = await parseBody(request, createIncidentSchema);
   const repo = await getRepository();
   if (!(await repo.projects.get(input.projectId))) throw new HttpError(422, 'Unknown project');
-  return NextResponse.json(await repo.incidents.create(input, session.user.name), { status: 201 });
+  const incident = await repo.incidents.create(input, session.user.name);
+  const { integrations } = await repo.settings.get();
+  return NextResponse.json(await dispatchIncidentIntegrations(repo, incident, integrations, session.user.name), { status: 201 });
 });

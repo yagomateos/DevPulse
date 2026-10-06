@@ -1,4 +1,4 @@
-import { format, formatDistanceToNowStrict, isValid, parseISO } from 'date-fns';
+import { formatDistanceToNowStrict, isValid, parseISO } from 'date-fns';
 
 const toDate = (value: string | Date) => (typeof value === 'string' ? parseISO(value) : value);
 
@@ -10,10 +10,39 @@ export function formatRelative(value: string | Date | null | undefined) {
   return formatDistanceToNowStrict(date, { addSuffix: true });
 }
 
-export function formatDateTime(value: string | Date | null | undefined, pattern = 'MMM d, HH:mm') {
+export const DATE_PRESETS = {
+  time: { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' },
+  'time-seconds': { hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' },
+  day: { month: 'short', day: 'numeric' },
+  datetime: { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' },
+  long: { dateStyle: 'medium', timeStyle: 'short' },
+  full: { dateStyle: 'medium', timeStyle: 'long' },
+} as const satisfies Record<string, Intl.DateTimeFormatOptions>;
+
+export type DatePreset = keyof typeof DATE_PRESETS;
+
+const formatterCache = new Map<string, Intl.DateTimeFormat>();
+
+/**
+ * Formats an absolute timestamp in an explicit IANA time zone (the workspace
+ * setting). Because the zone is explicit, the server and the browser produce
+ * identical strings — no hydration mismatch when the server runs in UTC.
+ */
+export function formatDateTime(value: string | Date | null | undefined, preset: DatePreset = 'datetime', timeZone = 'UTC') {
   if (!value) return '—';
   const date = toDate(value);
-  return isValid(date) ? format(date, pattern) : '—';
+  if (!isValid(date)) return '—';
+  const key = `${preset}|${timeZone}`;
+  let formatter = formatterCache.get(key);
+  if (!formatter) {
+    try {
+      formatter = new Intl.DateTimeFormat('en-US', { ...DATE_PRESETS[preset], timeZone });
+    } catch {
+      formatter = new Intl.DateTimeFormat('en-US', { ...DATE_PRESETS[preset], timeZone: 'UTC' });
+    }
+    formatterCache.set(key, formatter);
+  }
+  return formatter.format(date);
 }
 
 export function formatDuration(seconds: number) {

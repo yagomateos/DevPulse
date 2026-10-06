@@ -15,9 +15,9 @@ import { SettingsFormActions } from './settings-form-actions';
 import { SettingsSection } from './settings-section';
 
 const INTEGRATIONS: { key: keyof IntegrationsSettings; name: string; description: string; icon: LucideIcon; field: { name: 'organization' | 'channel' | 'serviceKey'; label: string; placeholder: string } }[] = [
-  { key: 'github', name: 'GitHub', description: 'Sync pull requests, checks and commits.', icon: Github, field: { name: 'organization', label: 'Organization', placeholder: 'acme' } },
-  { key: 'slack', name: 'Slack', description: 'Post incident updates to a channel.', icon: MessageSquare, field: { name: 'channel', label: 'Channel', placeholder: '#incidents' } },
-  { key: 'pagerduty', name: 'PagerDuty', description: 'Page on-call when a SEV1/SEV2 is declared.', icon: Siren, field: { name: 'serviceKey', label: 'Service key', placeholder: 'PXXXXXX' } },
+  { key: 'github', name: 'GitHub', description: 'Pull request sync. When disconnected, PR pages show a stale-data notice.', icon: Github, field: { name: 'organization', label: 'Organization', placeholder: 'acme' } },
+  { key: 'slack', name: 'Slack', description: 'New incidents are posted to the channel (recorded on the incident timeline).', icon: MessageSquare, field: { name: 'channel', label: 'Channel', placeholder: '#incidents' } },
+  { key: 'pagerduty', name: 'PagerDuty', description: 'Pages on-call when a SEV1/SEV2 is declared (recorded on the timeline).', icon: Siren, field: { name: 'serviceKey', label: 'Service key', placeholder: 'PXXXXXX' } },
 ];
 
 export function IntegrationsSettingsForm({ defaults }: { defaults: IntegrationsSettings }) {
@@ -40,7 +40,7 @@ export function IntegrationsSettingsForm({ defaults }: { defaults: IntegrationsS
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <SettingsSection
           title="Integrations"
-          description="Demo mode uses mock connectors, so no external credentials are required. Settings are stored and shared with the team."
+          description="Mock connectors: nothing leaves the app and no credentials are needed, but each connector’s effect is real and visible in the product."
           footer={!readOnly && <SettingsFormActions isDirty={form.formState.isDirty} isSaving={update.isPending} isSaved={update.isSuccess} onReset={() => form.reset()} />}
         >
           <ul className="space-y-3">

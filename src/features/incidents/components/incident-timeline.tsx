@@ -3,9 +3,9 @@
 import { AlertOctagon, Bell, ChevronDown, Gauge, MessageSquare, Rocket, Search, ShieldCheck, Wrench, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { TimelineEvent, TimelineEventType } from '@/types/domain';
+import { useDateFormatter } from '@/features/settings/components/workspace-preferences-provider';
 
 export const EVENT_META: Record<TimelineEventType, { label: string; icon: LucideIcon; tone: string }> = {
   deployment: { label: 'Deployment', icon: Rocket, tone: 'text-primary border-primary/40 bg-primary/10' },
@@ -37,6 +37,7 @@ interface IncidentTimelineProps {
  * events for details, relative T± offsets and deep links to related records.
  */
 export function IncidentTimeline({ events, startedAt }: IncidentTimelineProps) {
+  const formatDate = useDateFormatter();
   const sorted = useMemo(() => [...events].sort((a, b) => a.occurredAt.localeCompare(b.occurredAt)), [events]);
   const types = useMemo(() => [...new Set(sorted.map((e) => e.type))], [sorted]);
   const [hidden, setHidden] = useState<Set<TimelineEventType>>(new Set());
@@ -89,7 +90,7 @@ export function IncidentTimeline({ events, startedAt }: IncidentTimelineProps) {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[13px] font-medium">{event.title}</span>
                       <span className="block text-[11px] text-muted-foreground">
-                        <time dateTime={event.occurredAt}>{formatDateTime(event.occurredAt, 'HH:mm')}</time>
+                        <time dateTime={event.occurredAt}>{formatDate(event.occurredAt, 'time')}</time>
                         {event.actor && ` · ${event.actor}`}
                       </span>
                     </span>

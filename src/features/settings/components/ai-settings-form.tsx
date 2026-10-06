@@ -90,8 +90,8 @@ export function AISettingsForm({ defaults }: { defaults: AISettings }) {
                 </FormItem>
               )}
             />
-            <SwitchField control={form.control} name="includeLogs" label="Include deployment logs in prompts" description="Improves root-cause analysis; logs may contain sensitive data." disabled={readOnly} />
-            <SwitchField control={form.control} name="autoAnalyzePullRequests" label="Suggest AI review on new pull requests" disabled={readOnly} />
+            <SwitchField control={form.control} name="includeLogs" label="Share deployment logs with the AI" description="Improves root-cause analysis. When off, logs are stripped before any analysis or chat answer." disabled={readOnly} />
+            <SwitchField control={form.control} name="autoAnalyzePullRequests" label="Automatically review open pull requests" description="Runs the AI review when an open PR without an analysis is viewed." disabled={readOnly} />
           </fieldset>
         </SettingsSection>
       </form>

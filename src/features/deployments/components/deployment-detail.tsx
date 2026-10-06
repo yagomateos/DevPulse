@@ -13,7 +13,7 @@ import { AskAIButton } from '@/features/ai/components/ask-ai-button';
 import { useAIAnalysis } from '@/features/ai/hooks/use-ai-analysis';
 import { useRegisterAIContext } from '@/features/ai/hooks/use-register-ai-context';
 import { useUrlState } from '@/hooks/use-url-state';
-import { formatDateTime, formatDuration } from '@/lib/format';
+import { formatDuration } from '@/lib/format';
 import { useDeployment } from '../hooks/use-deployments';
 import { CommitInfo } from './commit-info';
 import { DeploymentAnalysisResult } from './deployment-analysis-result';
@@ -22,6 +22,7 @@ import { DeploymentMetrics } from './deployment-metrics';
 import { DeploymentStatus } from './deployment-status';
 import { DeploymentTimeline } from './deployment-timeline';
 import { PerformanceComparison } from './performance-comparison';
+import { useDateFormatter } from '@/features/settings/components/workspace-preferences-provider';
 
 const PerformanceSeriesChart = dynamic(() => import('./performance-series-chart'), { ssr: false, loading: () => <Skeleton className="h-[260px] w-full" /> });
 
@@ -29,6 +30,7 @@ const TABS = ['overview', 'logs', 'changes', 'performance'] as const;
 type Tab = (typeof TABS)[number];
 
 export function DeploymentDetail({ projectId, number }: { projectId: string; number: number }) {
+  const formatDate = useDateFormatter();
   const { data: d } = useDeployment(projectId, number);
   const url = useUrlState();
   const tabParam = url.get('tab') as Tab | null;
@@ -48,7 +50,7 @@ export function DeploymentDetail({ projectId, number }: { projectId: string; num
           </div>
           <h1 className="text-xl font-semibold tracking-tight">Deployment #{d.number}</h1>
           <p className="text-xs text-muted-foreground">
-            {formatDateTime(d.startedAt, 'PPp')} · {d.finishedAt ? `finished in ${formatDuration(d.durationSeconds)}` : 'in progress — updating live'}
+            {formatDate(d.startedAt, 'long')} · {d.finishedAt ? `finished in ${formatDuration(d.durationSeconds)}` : 'in progress — updating live'}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

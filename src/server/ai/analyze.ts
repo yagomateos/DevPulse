@@ -8,7 +8,7 @@ import {
   type AIAnalysisKind,
   type AIAnalysisResultMap,
 } from '@/schemas/ai';
-import type { Deployment, Incident, PullRequest } from '@/types/domain';
+import type { Deployment, PullRequest } from '@/types/domain';
 import { HttpError } from '../auth/session';
 import type { Repository } from '../repositories';
 import { DEMO_MODEL, getAIConfig } from './config';
@@ -39,21 +39,32 @@ interface Target {
   key: string;
 }
 
-async function loadSubject(repo: Repository, target: Target) {
+/**
+ * Settings → AI → "Include deployment logs": when off, logs are stripped
+ * before anything reaches the model (live LLM or demo model).
+ */
+function withoutLogs(deployment: Deployment): Deployment {
+  return { ...deployment, logs: [] };
+}
+
+async function loadSubject(repo: Repository, target: Target, includeLogs: boolean) {
+  const scrub = (d: Deployment) => (includeLogs ? d : withoutLogs(d));
   if (target.kind === 'pull_request') {
     const pr = await repo.pullRequests.get(target.projectId, Number(target.key));
     if (!pr) throw new HttpError(404, 'Pull request not found');
     return { id: pr.id, prompt: describePullRequest(pr), heuristic: () => analyzePullRequestHeuristic(pr) };
   }
   if (target.kind === 'deployment') {
-    const deployment = await repo.deployments.get(target.projectId, Number(target.key));
-    if (!deployment) throw new HttpError(404, 'Deployment not found');
+    const found = await repo.deployments.get(target.projectId, Number(target.key));
+    if (!found) throw new HttpError(404, 'Deployment not found');
+    const deployment = scrub(found);
     const pr = await relatedPullRequest(repo, deployment);
     return { id: deployment.id, prompt: describeDeployment(deployment, pr), heuristic: () => analyzeDeploymentHeuristic(deployment, pr) };
   }
   const incident = await repo.incidents.get(target.key);
   if (!incident || incident.projectId !== target.projectId) throw new HttpError(404, 'Incident not found');
-  const deployment = incident.relatedDeploymentId ? await repo.deployments.getById(incident.relatedDeploymentId) : null;
+  const related = incident.relatedDeploymentId ? await repo.deployments.getById(incident.relatedDeploymentId) : null;
+  const deployment = related ? scrub(related) : null;
   const pr = deployment ? await relatedPullRequest(repo, deployment) : null;
   return { id: incident.id, prompt: describeIncident(incident, deployment, pr), heuristic: () => investigateIncidentHeuristic(incident, deployment, pr) };
 }
@@ -67,7 +78,7 @@ async function relatedPullRequest(repo: Repository, deployment: Deployment): Pro
 export async function runAnalysis<K extends AIAnalysisKind>(repo: Repository, target: Target & { kind: K }): Promise<AIAnalysisEnvelope<K>> {
   const settings = (await repo.settings.get()).ai;
   const config = getAIConfig(settings.model);
-  const subject = await loadSubject(repo, target);
+  const subject = await loadSubject(repo, target, settings.includeLogs);
   const schema = SCHEMAS[target.kind] as z.ZodType<AIAnalysisResultMap[K]>;
 
   let result: AIAnalysisResultMap[K];
@@ -104,4 +115,3 @@ export async function runAnalysis<K extends AIAnalysisKind>(repo: Repository, ta
   return envelope;
 }
 
-export type { Incident };

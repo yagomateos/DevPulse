@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { FormFooter } from '@/components/shared/form-footer';
 import { usePermissions } from '@/features/auth/hooks/use-permissions';
 import { applyServerErrors } from '@/lib/forms';
@@ -22,7 +21,7 @@ export function InviteMemberForm({ onDone }: { onDone: () => void }) {
   const invite = useInviteMember();
   const form = useForm<InviteMemberInput>({
     resolver: zodResolver(inviteMemberSchema),
-    defaultValues: { name: '', email: '', role: 'DEVELOPER', message: '' },
+    defaultValues: { name: '', email: '', role: 'DEVELOPER' },
   });
   const role = useWatch({ control: form.control, name: 'role' });
 
@@ -89,19 +88,6 @@ export function InviteMemberForm({ onDone }: { onDone: () => void }) {
                 </SelectContent>
               </Select>
               <FormDescription>{ROLE_DESCRIPTIONS[role]}</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="message"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Personal note (optional)</FormLabel>
-              <FormControl>
-                <Textarea rows={2} {...field} />
-              </FormControl>
               <FormMessage />
             </FormItem>
           )}
