@@ -14,10 +14,20 @@ import { useUpdateSettings } from '../hooks/use-settings';
 import { SettingsFormActions } from './settings-form-actions';
 import { SettingsSection } from './settings-section';
 
-const INTEGRATIONS: { key: keyof IntegrationsSettings; name: string; description: string; icon: LucideIcon; field: { name: 'organization' | 'channel' | 'serviceKey'; label: string; placeholder: string } }[] = [
-  { key: 'github', name: 'GitHub', description: 'Pull request sync. When disconnected, PR pages show a stale-data notice.', icon: Github, field: { name: 'organization', label: 'Organization', placeholder: 'acme' } },
-  { key: 'slack', name: 'Slack', description: 'New incidents are posted to the channel (recorded on the incident timeline).', icon: MessageSquare, field: { name: 'channel', label: 'Channel', placeholder: '#incidents' } },
-  { key: 'pagerduty', name: 'PagerDuty', description: 'Pages on-call when a SEV1/SEV2 is declared (recorded on the timeline).', icon: Siren, field: { name: 'serviceKey', label: 'Service key', placeholder: 'PXXXXXX' } },
+interface IntegrationConfig {
+  key: keyof IntegrationsSettings;
+  name: string;
+  description: string;
+  icon: LucideIcon;
+  /** `live` talks to the real service; `mock` records its effect in-app (no credentials needed). */
+  mode: 'live' | 'mock';
+  field?: { name: 'slack.channel' | 'pagerduty.serviceKey'; label: string; placeholder: string };
+}
+
+const INTEGRATIONS: IntegrationConfig[] = [
+  { key: 'github', name: 'GitHub', mode: 'live', description: "Syncs each project's pull requests from its repository (signed webhooks + daily reconcile). When disconnected, sync pauses and PR pages show a stale-data notice.", icon: Github },
+  { key: 'slack', name: 'Slack', mode: 'mock', description: 'New incidents are posted to the channel (recorded on the incident timeline).', icon: MessageSquare, field: { name: 'slack.channel', label: 'Channel', placeholder: '#incidents' } },
+  { key: 'pagerduty', name: 'PagerDuty', mode: 'mock', description: 'Pages on-call when a SEV1/SEV2 is declared (recorded on the timeline).', icon: Siren, field: { name: 'pagerduty.serviceKey', label: 'Service key', placeholder: 'PXXXXXX' } },
 ];
 
 export function IntegrationsSettingsForm({ defaults }: { defaults: IntegrationsSettings }) {
@@ -40,12 +50,13 @@ export function IntegrationsSettingsForm({ defaults }: { defaults: IntegrationsS
       <form onSubmit={form.handleSubmit(onSubmit)}>
         <SettingsSection
           title="Integrations"
-          description="Mock connectors: nothing leaves the app and no credentials are needed, but each connector’s effect is real and visible in the product."
+          description="GitHub is a live integration. Slack and PagerDuty are mock connectors: nothing leaves the app and no credentials are needed, but their effect is real and visible on the incident timeline."
           footer={!readOnly && <SettingsFormActions isDirty={form.formState.isDirty} isSaving={update.isPending} isSaved={update.isSuccess} onReset={() => form.reset()} />}
         >
           <ul className="space-y-3">
             {INTEGRATIONS.map((i) => {
               const connected = values[i.key]?.connected;
+              const extra = i.field;
               return (
                 <li key={i.key} className="space-y-3 rounded-lg border p-3">
                   <div className="flex items-center gap-3">
@@ -55,6 +66,7 @@ export function IntegrationsSettingsForm({ defaults }: { defaults: IntegrationsS
                     <div className="min-w-0 flex-1">
                       <p className="flex items-center gap-2 text-sm font-medium">
                         {i.name} {connected ? <Badge variant="success">Connected</Badge> : <Badge variant="muted">Not connected</Badge>}
+                        {i.mode === 'mock' && <Badge variant="outline">Mock</Badge>}
                       </p>
                       <p className="text-xs text-muted-foreground">{i.description}</p>
                     </div>
@@ -70,15 +82,15 @@ export function IntegrationsSettingsForm({ defaults }: { defaults: IntegrationsS
                       )}
                     />
                   </div>
-                  {connected && (
+                  {connected && extra && (
                     <FormField
                       control={form.control}
-                      name={`${i.key}.${i.field.name}` as `github.organization`}
+                      name={extra.name}
                       render={({ field }) => (
                         <FormItem className="max-w-xs">
-                          <FormLabel className="text-xs">{i.field.label}</FormLabel>
+                          <FormLabel className="text-xs">{extra.label}</FormLabel>
                           <FormControl>
-                            <Input placeholder={i.field.placeholder} disabled={readOnly} {...field} />
+                            <Input placeholder={extra.placeholder} disabled={readOnly} {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

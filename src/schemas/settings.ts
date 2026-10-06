@@ -44,7 +44,7 @@ export const securitySettingsSchema = z
   });
 
 export const integrationsSettingsSchema = z.object({
-  github: z.object({ connected: z.boolean(), organization: z.string().trim().max(64) }),
+  github: z.object({ connected: z.boolean() }),
   slack: z.object({ connected: z.boolean(), channel: z.string().trim().max(64) }),
   pagerduty: z.object({ connected: z.boolean(), serviceKey: z.string().trim().max(64) }),
 });

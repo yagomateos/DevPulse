@@ -12,7 +12,7 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
     minimumSeverity: 'sev3',
   },
   integrations: {
-    github: { connected: true, organization: 'acme' },
+    github: { connected: true },
     slack: { connected: false, channel: '#incidents' },
     pagerduty: { connected: false, serviceKey: '' },
   },
