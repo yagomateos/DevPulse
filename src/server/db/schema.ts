@@ -126,5 +126,6 @@ export const notifications = pgTable('notifications', {
   body: text('body').notNull(),
   href: text('href').notNull(),
   read: integer('read').notNull().default(0),
+  severity: text('severity', { enum: ['sev1', 'sev2', 'sev3', 'sev4'] }),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull(),
 });

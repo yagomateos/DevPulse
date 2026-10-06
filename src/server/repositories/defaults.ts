@@ -8,8 +8,7 @@ export const DEFAULT_SETTINGS: WorkspaceSettings = {
     network: { latency: 'realistic', failureRate: '0' },
   },
   notifications: {
-    email: { incidents: true, deployments: true, reviews: true, weeklyDigest: false },
-    inApp: { mentions: true, assignments: true },
+    inApp: { incidents: true, deployments: true, reviews: true, mentions: true },
     minimumSeverity: 'sev3',
   },
   integrations: {

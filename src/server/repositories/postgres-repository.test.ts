@@ -51,13 +51,31 @@ describe('postgres repository (PGlite)', () => {
     expect(page.items.map((d) => d.number)).toContain(128);
   });
 
+  it('matches the in-memory store when declaring incidents (timeline, ids, notification)', async () => {
+    const created = await repo.incidents.create({ projectId: 'orion-gateway', title: 'Auth latency regression', description: 'p95 above SLO after deploy #128.', severity: 'sev2', service: 'auth-service', assignee: 'Sarah Kim', relatedDeploymentId: 'orion-gateway~128' }, 'Alex Chen');
+    expect(created.id).toBe('inc-43');
+    expect(created.timeline.map((e) => e.type)).toEqual(['deployment', 'created']);
+    const notifications = await repo.notifications.list();
+    expect(notifications[0]).toMatchObject({ id: 'ntf-inc-43', severity: 'sev2' });
+    const facets = await repo.incidents.facets('orion-gateway');
+    expect(facets.services).toEqual(expect.arrayContaining(['api-gateway', 'rate-limiter']));
+  });
+
+  it('suffixes duplicate project slugs and rejects duplicate invitations', async () => {
+    const project = await repo.projects.create({ name: 'Atlas Web', repository: 'acme/atlas-web-2', defaultBranch: 'main', language: 'TypeScript', description: '' }, 'usr_alex');
+    expect(project.id).toBe('atlas-web-2'); // 'atlas-web' already exists in the seed
+    const again = await repo.projects.create({ name: 'Atlas Web', repository: 'acme/atlas-web-3', defaultBranch: 'main', language: 'TypeScript', description: '' }, 'usr_alex');
+    expect(again.id).toBe('atlas-web-3');
+    await expect(repo.team.invite({ name: 'Dup', email: 'SARAH.KIM@acme.dev', role: 'DEVELOPER' })).rejects.toThrow(/already exists/);
+  });
+
   it('creates and updates incidents', async () => {
     const created = await repo.incidents.create({ projectId: 'nimbus-ds', title: 'Docs search returns no results', description: 'Search index rebuild failed overnight.', severity: 'sev3', service: 'docs-site', assignee: null, relatedDeploymentId: null }, 'Alex Chen');
     const list = await repo.incidents.list(incidentQuerySchema.parse({ projectId: 'nimbus-ds', status: 'investigating' }));
     expect(list.items.map((i) => i.id)).toContain(created.id);
     const resolved = await repo.incidents.update(created.id, { status: 'resolved' }, 'Alex Chen');
     expect(resolved?.status).toBe('resolved');
-    expect((await repo.incidents.get(created.id))?.timeline).toHaveLength(2);
+    expect((await repo.incidents.get(created.id))?.timeline.map((e) => e.type)).toEqual(['created', 'resolution']);
   });
 
   it('persists settings, team changes and AI analyses', async () => {

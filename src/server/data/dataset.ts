@@ -875,7 +875,7 @@ export function createDataset(now: number = Date.now(), seed = 20261005): Datase
   }));
 
   const notifications: Notification[] = [
-    { id: 'ntf-1', kind: 'incident', title: 'SEV1 · INC-42 opened', body: 'Authentication timeouts on API gateway', href: '/projects/orion-gateway/incidents/inc-42', createdAt: incidents[0]!.createdAt, read: false },
+    { id: 'ntf-1', kind: 'incident', title: 'SEV1 · INC-42 opened', body: 'Authentication timeouts on API gateway', href: '/projects/orion-gateway/incidents/inc-42', createdAt: incidents[0]!.createdAt, read: false, severity: 'sev1' },
     { id: 'ntf-2', kind: 'deployment', title: 'Deployment #128 failed', body: 'Orion API Gateway · production · migration timeout', href: '/projects/orion-gateway/deployments/128', createdAt: new Date(now - 2 * HOUR - 40 * MINUTE).toISOString(), read: false },
     { id: 'ntf-3', kind: 'review', title: 'Review requested on #847', body: 'Marcus Rivera requested your review', href: '/projects/atlas-web/pull-requests/847', createdAt: new Date(now - 5 * HOUR).toISOString(), read: false },
     { id: 'ntf-4', kind: 'mention', title: 'Mentioned in #312', body: 'Noah Garcia: “@alex the index is not CONCURRENTLY”', href: '/projects/orion-gateway/pull-requests/312', createdAt: new Date(now - 18 * HOUR).toISOString(), read: true },

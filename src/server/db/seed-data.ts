@@ -25,7 +25,7 @@ export async function seedDatabase(db: AnyPgDatabase, data: Dataset) {
     await tx.insert(schema.teamMembers).values(
       data.projects.flatMap((p) => data.members.filter((m) => m.status === 'active').map((m) => ({ projectId: p.id, userId: m.id, role: m.role }))),
     );
-    await tx.insert(schema.notifications).values(data.notifications.map((n) => ({ ...n, read: n.read ? 1 : 0 })));
+    await tx.insert(schema.notifications).values(data.notifications.map((n) => ({ ...n, severity: n.severity ?? null, read: n.read ? 1 : 0 })));
     await tx.insert(schema.workspaceSettings).values({ id: 'default', value: DEFAULT_SETTINGS });
   });
 }

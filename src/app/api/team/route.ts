@@ -16,6 +16,10 @@ export const POST = route(async (request) => {
   try {
     return NextResponse.json(await (await getRepository()).team.invite(input), { status: 201 });
   } catch (error) {
-    throw new HttpError(409, error instanceof Error ? error.message : 'Could not invite member');
+    // Never echo raw storage errors to the client; only the known conflict is user-facing.
+    if (error instanceof Error && /already exists/.test(error.message)) {
+      return NextResponse.json({ error: { message: 'Validation failed', status: 422, issues: [{ path: 'email', message: 'A member with this email already exists' }] } }, { status: 422 });
+    }
+    throw error;
   }
 });

@@ -12,6 +12,7 @@ import type {
 } from '@/types/domain';
 import { computeDashboardMetrics, computeDeploymentSeries, computePerformanceSeries } from '../data/analytics';
 import { createDataset, projectServices, type Dataset } from '../data/dataset';
+import { applyIncidentUpdate, buildIncident, incidentNotification, nextIncidentNumber } from '../data/incident-logic';
 import { activityFromDataset, searchDataset } from '../data/projections';
 import { inSet, matchesText, paginate, sortBy } from '../data/query';
 import { DEFAULT_SETTINGS } from './defaults';
@@ -217,50 +218,21 @@ export function createMemoryRepository(): Repository {
       },
       async create(input, actor) {
         const s = store();
-        const next = Math.max(...s.incidents.map((i) => Number(i.id.split('-')[1]) || 0)) + 1;
-        const now = new Date().toISOString();
-        const deployment = input.relatedDeploymentId ? s.deployments.find((d) => d.id === input.relatedDeploymentId) : undefined;
-        const incident: Incident = {
-          id: `inc-${next}`,
-          reference: `INC-${next}`,
-          projectId: input.projectId,
-          title: input.title,
-          description: input.description,
-          severity: input.severity,
-          status: 'investigating',
-          service: input.service,
-          assignee: input.assignee,
-          affectedUsers: 0,
-          createdAt: now,
-          resolvedAt: null,
-          relatedDeploymentId: deployment?.id ?? null,
-          timeline: [
-            ...(deployment
-              ? [{ id: `inc-${next}-e0`, type: 'deployment' as const, title: `Deployment #${deployment.number}`, description: deployment.commitMessage, occurredAt: deployment.startedAt, actor: deployment.author, href: `/projects/${deployment.projectId}/deployments/${deployment.number}` }]
-              : []),
-            { id: `inc-${next}-e1`, type: 'created', title: 'Incident opened', description: `Declared manually by ${actor}.`, occurredAt: now, actor },
-          ],
-        };
+        const deployment = input.relatedDeploymentId ? (s.deployments.find((d) => d.id === input.relatedDeploymentId) ?? null) : null;
+        const incident = buildIncident(input, actor, nextIncidentNumber(s.incidents.map((i) => i.id)), deployment);
         s.incidents.unshift(incident);
         recomputeProjectCounters(s, input.projectId);
-        s.notifications.unshift({ id: `ntf-${Date.now()}`, kind: 'incident', title: `${input.severity.toUpperCase()} · ${incident.reference} opened`, body: incident.title, href: `/projects/${incident.projectId}/incidents/${incident.id}`, createdAt: now, read: false });
+        s.notifications.unshift(incidentNotification(incident));
         return clone(incident);
       },
       async update(id, input, actor) {
         const s = store();
-        const incident = s.incidents.find((i) => i.id === id);
-        if (!incident) return null;
-        const now = new Date().toISOString();
-        const typeByStatus = { investigating: 'investigation', identified: 'investigation', monitoring: 'mitigation', resolved: 'resolution' } as const;
-        if (incident.status !== input.status) {
-          incident.status = input.status;
-          incident.resolvedAt = input.status === 'resolved' ? now : null;
-          incident.timeline.push({ id: `${id}-e${incident.timeline.length + 1}`, type: typeByStatus[input.status], title: `Status changed to ${input.status}`, description: input.note || `Updated by ${actor}.`, occurredAt: now, actor });
-        } else if (input.note) {
-          incident.timeline.push({ id: `${id}-e${incident.timeline.length + 1}`, type: 'note', title: 'Note added', description: input.note, occurredAt: now, actor });
-        }
-        recomputeProjectCounters(s, incident.projectId);
-        return clone(incident);
+        const index = s.incidents.findIndex((i) => i.id === id);
+        if (index < 0) return null;
+        const updated = applyIncidentUpdate(s.incidents[index]!, input, actor);
+        s.incidents[index] = updated;
+        recomputeProjectCounters(s, updated.projectId);
+        return clone(updated);
       },
     },
 

@@ -4,6 +4,8 @@ import type { AIAnalysisEnvelope, AIAnalysisKind } from '@/schemas/ai';
 import type { Deployment, Incident, Notification, Paginated, Project, PullRequest, TeamMember } from '@/types/domain';
 import { computeDashboardMetrics, computeDeploymentSeries, computePerformanceSeries } from '../data/analytics';
 import type { Dataset } from '../data/dataset';
+import { projectServices } from '../data/dataset';
+import { applyIncidentUpdate, buildIncident, incidentNotification, nextIncidentNumber } from '../data/incident-logic';
 import { activityFromDataset, searchDataset } from '../data/projections';
 import { getDb, type Database } from '../db/client';
 import * as t from '../db/schema';
@@ -61,7 +63,10 @@ export function createPostgresRepository(db: Database = getDb()): Repository {
         return (await repo.projects.list()).find((p) => p.id === id) ?? null;
       },
       async create(input, ownerId) {
-        const id = input.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        const base = input.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        const taken = new Set((await db.select({ id: t.projects.id }).from(t.projects)).map((r) => r.id));
+        let id = base;
+        for (let n = 2; taken.has(id); n++) id = `${base}-${n}`;
         const [row] = await db
           .insert(t.projects)
           .values({ id, name: input.name, repository: input.repository, defaultBranch: input.defaultBranch, description: input.description ?? '', language: input.language, status: 'active', deploymentStatus: 'queued', healthScore: 100, ownerId })
@@ -136,8 +141,9 @@ export function createPostgresRepository(db: Database = getDb()): Repository {
       },
       async facets(projectId) {
         const rows = await db.selectDistinct({ service: t.incidents.service, assignee: t.incidents.assignee }).from(t.incidents).where(projectId ? eq(t.incidents.projectId, projectId) : undefined);
+        const known = projectId ? projectServices(projectId) : (await db.select({ id: t.projects.id }).from(t.projects)).flatMap((p) => projectServices(p.id));
         return {
-          services: [...new Set(rows.map((r) => r.service))].sort(),
+          services: [...new Set([...rows.map((r) => r.service), ...known])].sort(),
           assignees: [...new Set(rows.map((r) => r.assignee).filter((a): a is string => !!a))].sort(),
         };
       },
@@ -146,21 +152,21 @@ export function createPostgresRepository(db: Database = getDb()): Repository {
         return row?.payload ?? null;
       },
       async create(input, actor) {
-        const [{ n } = { n: 0 }] = await db.select({ n: count() }).from(t.incidents);
-        const id = `inc-${100 + n}`;
-        const now = new Date().toISOString();
-        const incident: Incident = { ...input, id, reference: id.toUpperCase(), status: 'investigating', affectedUsers: 0, createdAt: now, resolvedAt: null, timeline: [{ id: `${id}-e1`, type: 'created', title: 'Incident opened', description: `Declared manually by ${actor}.`, occurredAt: now, actor }] };
-        await db.insert(t.incidents).values({ id, projectId: input.projectId, title: input.title, severity: input.severity, status: 'investigating', service: input.service, assignee: input.assignee, createdAt: now, payload: incident });
+        const ids = (await db.select({ id: t.incidents.id }).from(t.incidents)).map((r) => r.id);
+        const deployment = input.relatedDeploymentId ? await repo.deployments.getById(input.relatedDeploymentId) : null;
+        const incident = buildIncident(input, actor, nextIncidentNumber(ids), deployment);
+        const notification = incidentNotification(incident);
+        await db.transaction(async (tx) => {
+          await tx.insert(t.incidents).values({ id: incident.id, projectId: incident.projectId, title: incident.title, severity: incident.severity, status: incident.status, service: incident.service, assignee: incident.assignee, createdAt: incident.createdAt, payload: incident });
+          await tx.insert(t.notifications).values({ ...notification, severity: notification.severity ?? null, read: 0 });
+        });
         return incident;
       },
       async update(id, input, actor) {
-        const incident = await repo.incidents.get(id);
-        if (!incident) return null;
-        const now = new Date().toISOString();
-        incident.status = input.status;
-        incident.resolvedAt = input.status === 'resolved' ? now : null;
-        incident.timeline.push({ id: `${id}-e${incident.timeline.length + 1}`, type: input.status === 'resolved' ? 'resolution' : 'note', title: `Status changed to ${input.status}`, description: input.note || `Updated by ${actor}.`, occurredAt: now, actor });
-        await db.update(t.incidents).set({ status: input.status, payload: incident }).where(eq(t.incidents.id, id));
+        const current = await repo.incidents.get(id);
+        if (!current) return null;
+        const incident = applyIncidentUpdate(current, input, actor);
+        await db.update(t.incidents).set({ status: incident.status, payload: incident }).where(eq(t.incidents.id, id));
         return incident;
       },
     },
@@ -174,6 +180,8 @@ export function createPostgresRepository(db: Database = getDb()): Repository {
         return (row as TeamMember | undefined) ?? null;
       },
       async invite(input) {
+        const [existing] = await db.select({ id: t.users.id }).from(t.users).where(ilike(t.users.email, input.email));
+        if (existing) throw new Error('A member with this email already exists');
         const [row] = await db
           .insert(t.users)
           .values({ id: `usr_${Date.now().toString(36)}`, name: input.name, email: input.email, role: input.role, status: 'invited', presence: 'offline', lastActiveAt: new Date().toISOString() })

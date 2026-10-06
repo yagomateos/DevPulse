@@ -41,6 +41,7 @@ CREATE TABLE "notifications" (
 	"body" text NOT NULL,
 	"href" text NOT NULL,
 	"read" integer DEFAULT 0 NOT NULL,
+	"severity" text,
 	"created_at" timestamp with time zone NOT NULL
 );
 --> statement-breakpoint

@@ -360,4 +360,6 @@ export interface Notification {
   href: string;
   createdAt: ISODateString;
   read: boolean;
+  /** Set for incident notifications; used by the minimum-severity preference. */
+  severity?: IncidentSeverity | null;
 }

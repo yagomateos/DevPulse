@@ -1,5 +1,5 @@
 {
-  "id": "c03f3ed9-a31a-444f-99c6-42339054b397",
+  "id": "e142e00f-f625-4963-b784-2169bff4eb67",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -340,6 +340,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
+        },
+        "severity": {
+          "name": "severity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
