@@ -18,6 +18,16 @@ const PAGES = [
   '/architecture',
 ];
 
+/**
+ * Waits until no loading region is announced (aria-busy) instead of
+ * `networkidle`, which never settles in production builds because Next.js
+ * prefetches visible links.
+ */
+async function waitForSettled(page: Page) {
+  await page.waitForLoadState('load');
+  await page.waitForFunction(() => !document.querySelector('[aria-busy="true"]'), undefined, { timeout: 20_000 });
+}
+
 async function violations(page: Page, label: string) {
   const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
   return results.violations.map((v) => `${label}: [${v.impact}] ${v.id} — ${v.help} (${v.nodes.length}) ${v.nodes.map((n) => n.target.join(' ')).slice(0, 3).join(' | ')}`);
@@ -38,7 +48,7 @@ for (const scheme of ['dark', 'light'] as const) {
     const found: string[] = [];
     for (const path of PAGES) {
       await page.goto(path);
-      await page.waitForLoadState('networkidle');
+      await waitForSettled(page);
       found.push(...(await violations(page, `${path} (${scheme})`)));
     }
     expect(found, found.join('\n')).toEqual([]);
