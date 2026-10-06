@@ -38,6 +38,8 @@ export interface Repository {
   pullRequests: {
     list(query: PullRequestQuery): Promise<Paginated<PullRequestSummary>>;
     get(projectId: string, number: number): Promise<PullRequest | null>;
+    /** Insert or replace by id. Used by the GitHub sync; must be idempotent. */
+    upsert(pr: PullRequest): Promise<void>;
   };
   deployments: {
     list(query: DeploymentQuery): Promise<Paginated<DeploymentSummary>>;

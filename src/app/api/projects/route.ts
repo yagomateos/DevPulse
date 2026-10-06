@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { createProjectSchema } from '@/schemas/project';
 import { requirePermission, requireSession } from '@/server/auth/session';
+import { syncProject } from '@/server/github/sync';
 import { parseBody, route } from '@/server/http';
 import { getRepository } from '@/server/repositories';
 
@@ -14,5 +15,12 @@ export const POST = route(async (request) => {
   const session = await requirePermission('project:create');
   const input = await parseBody(request, createProjectSchema);
   const repo = await getRepository();
-  return NextResponse.json(await repo.projects.create(input, session.user.id), { status: 201 });
+  const project = await repo.projects.create(input, session.user.id);
+  // Backfill existing pull requests without making the user wait for GitHub.
+  after(async () => {
+    if (!(await repo.settings.get()).integrations.github.connected) return;
+    const result = await syncProject(repo, project);
+    if (result.error) console.warn(`[github-sync] initial backfill for ${project.id}: ${result.error}`);
+  });
+  return NextResponse.json(project, { status: 201 });
 });

@@ -147,6 +147,13 @@ export function createMemoryRepository(): Repository {
         const pr = store().pullRequests.find((p) => p.projectId === projectId && p.number === number);
         return pr ? clone(pr) : null;
       },
+      async upsert(pr) {
+        const s = store();
+        const index = s.pullRequests.findIndex((p) => p.id === pr.id);
+        if (index === -1) s.pullRequests.push(clone(pr));
+        else s.pullRequests[index] = clone(pr);
+        recomputeProjectCounters(s, pr.projectId);
+      },
     },
 
     deployments: {
