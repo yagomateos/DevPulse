@@ -86,7 +86,7 @@ jobs:
           context: .
           target: runner
           push: false
-          tags: ai-engineering-workspace:ci
+          tags: devpulse:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Build migrator image

@@ -9,9 +9,9 @@ const sans = Inter({ subsets: ['latin'], variable: '--font-sans', display: 'opti
 const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'optional', preload: false });
 
 export const metadata: Metadata = {
-  title: { default: 'AI Engineering Workspace', template: '%s · AI Engineering Workspace' },
+  title: { default: 'DevPulse', template: '%s · DevPulse' },
   description: 'Projects, pull requests, deployments and incidents for engineering teams — with AI analysis built into the workflow.',
-  applicationName: 'AI Engineering Workspace',
+  applicationName: 'DevPulse',
   robots: { index: false },
 };
 
