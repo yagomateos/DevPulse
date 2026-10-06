@@ -20,7 +20,27 @@ export const users = pgTable('users', {
   status: text('status', { enum: ['active', 'invited'] }).notNull(),
   presence: text('presence', { enum: ['online', 'away', 'offline'] }).notNull(),
   lastActiveAt: timestamp('last_active_at', { withTimezone: true, mode: 'string' }).notNull(),
+  /** scrypt hash (see server/auth/password.ts). Null for seeded demo accounts, which use the demo password. */
+  passwordHash: text('password_hash'),
 });
+
+/**
+ * Pending invitations. Only a SHA-256 hash of the token is stored, so a
+ * database leak cannot be turned into working invite links.
+ */
+export const invitations = pgTable(
+  'invitations',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull().unique(),
+    invitedBy: text('invited_by').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true, mode: 'string' }).notNull(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true, mode: 'string' }),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
+  },
+  (t) => [index('invitations_user_idx').on(t.userId)],
+);
 
 export const projects = pgTable('projects', {
   id: text('id').primaryKey(),

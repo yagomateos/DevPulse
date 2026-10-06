@@ -8,8 +8,9 @@ import { SESSION_COOKIE, verifySession } from '@/server/auth/token';
  */
 
 // These guard themselves: /api/test/reset (dev only, or token-protected in production builds),
-// the GitHub webhook (HMAC signature) and cron jobs (CRON_SECRET bearer token).
-const PUBLIC_PATHS = ['/login', '/api/health', '/api/test/reset', '/api/webhooks/github', '/api/cron'];
+// the GitHub webhook (HMAC signature), cron jobs (CRON_SECRET bearer token) and
+// invitation links (the single-use token in the URL is the credential).
+const PUBLIC_PATHS = ['/login', '/invite', '/api/health', '/api/test/reset', '/api/webhooks/github', '/api/cron'];
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;

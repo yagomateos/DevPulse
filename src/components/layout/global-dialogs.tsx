@@ -22,7 +22,7 @@ export function GlobalDialogs() {
       <ResponsiveDialog open={active === 'create-project'} onOpenChange={onOpenChange} title="Create project" description="Connect a repository to start tracking PRs, deployments and incidents.">
         {active === 'create-project' && <CreateProjectForm onDone={closeDialog} />}
       </ResponsiveDialog>
-      <ResponsiveDialog open={active === 'invite-member'} onOpenChange={onOpenChange} title="Invite a teammate" description="They’ll receive an email with a link to join this workspace.">
+      <ResponsiveDialog open={active === 'invite-member'} onOpenChange={onOpenChange} title="Invite a teammate" description="We’ll email them a single-use link to set a password and join. It expires in 7 days.">
         {active === 'invite-member' && <InviteMemberForm onDone={closeDialog} />}
       </ResponsiveDialog>
     </>

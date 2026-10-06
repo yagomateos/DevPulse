@@ -1,0 +1,41 @@
+import 'server-only';
+import { createHash, randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
+
+/**
+ * Password hashing with Node's built-in scrypt (memory-hard, no native
+ * dependency). Stored format: `scrypt$<N>$<salt b64>$<key b64>`, so the cost
+ * can be raised later without invalidating existing hashes.
+ */
+
+const N = 16_384;
+const KEY_LENGTH = 64;
+
+function derive(password: string, salt: Buffer, cost: number) {
+  return new Promise<Buffer>((resolve, reject) =>
+    scrypt(password.normalize('NFKC'), salt, KEY_LENGTH, { N: cost, r: 8, p: 1, maxmem: 64 * 1024 * 1024 }, (error, key) => (error ? reject(error) : resolve(key))),
+  );
+}
+
+export async function hashPassword(password: string) {
+  const salt = randomBytes(16);
+  const key = await derive(password, salt, N);
+  return `scrypt$${N}$${salt.toString('base64')}$${key.toString('base64')}`;
+}
+
+export async function verifyPasswordHash(password: string, stored: string) {
+  const [scheme, cost, salt, key] = stored.split('$');
+  if (scheme !== 'scrypt' || !cost || !salt || !key) return false;
+  const expected = Buffer.from(key, 'base64');
+  const actual = await derive(password, Buffer.from(salt, 'base64'), Number(cost));
+  return actual.length === expected.length && timingSafeEqual(actual, expected);
+}
+
+/** Invitation tokens: 256 random bits for the link, only their SHA-256 is persisted. */
+export function createInviteToken() {
+  const token = randomBytes(32).toString('base64url');
+  return { token, tokenHash: hashInviteToken(token) };
+}
+
+export function hashInviteToken(token: string) {
+  return createHash('sha256').update(token).digest('hex');
+}

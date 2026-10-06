@@ -13,8 +13,12 @@ export function useInviteMember() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: teamService.invite,
-    onSuccess: (member) => queryClient.setQueryData<TeamMember[]>(queryKeys.team.all, (list) => [...(list ?? []), member]),
+    onSuccess: ({ member }) => queryClient.setQueryData<TeamMember[]>(queryKeys.team.all, (list) => [...(list ?? []), member]),
   });
+}
+
+export function useResendInvitation() {
+  return useMutation({ mutationFn: teamService.resendInvitation });
 }
 
 function useOptimisticTeamMutation<V>(mutationFn: (vars: V) => Promise<unknown>, apply: (list: TeamMember[], vars: V) => TeamMember[]) {

@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, asc, count, desc, eq, ilike, inArray, or, sql, type AnyColumn, type SQL } from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, isNull, or, sql, type AnyColumn, type SQL } from 'drizzle-orm';
 import type { AIAnalysisEnvelope, AIAnalysisKind } from '@/schemas/ai';
 import type { Deployment, Incident, Notification, Paginated, Project, PullRequest, TeamMember } from '@/types/domain';
 import { computeDashboardMetrics, computeDeploymentSeries, computePerformanceSeries } from '../data/analytics';
@@ -31,6 +31,27 @@ async function page<T>(db: Database, table: typeof t.pullRequests | typeof t.dep
   const rows = await db.select({ payload: table.payload }).from(table).where(where).orderBy(order).limit(pageSize).offset((current - 1) * pageSize);
   return { items: rows.map(map), total, page: current, pageSize, pageCount };
 }
+
+const invitationColumns = {
+  id: t.invitations.id,
+  userId: t.invitations.userId,
+  invitedBy: t.invitations.invitedBy,
+  expiresAt: t.invitations.expiresAt,
+  acceptedAt: t.invitations.acceptedAt,
+  createdAt: t.invitations.createdAt,
+};
+
+/** Every user column except credentials: password hashes never leave this module. */
+const memberColumns = {
+  id: t.users.id,
+  name: t.users.name,
+  email: t.users.email,
+  role: t.users.role,
+  title: t.users.title,
+  status: t.users.status,
+  presence: t.users.presence,
+  lastActiveAt: t.users.lastActiveAt,
+};
 
 function withCounters(project: typeof t.projects.$inferSelect, open: number, active: number): Project {
   return { ...project, slug: project.id, ownerId: project.ownerId ?? '', openPullRequests: open, activeIncidents: active };
@@ -177,32 +198,68 @@ export function createPostgresRepository(db: Database = getDb()): Repository {
 
     team: {
       async list() {
-        return (await db.select().from(t.users).orderBy(asc(t.users.name))) as TeamMember[];
+        return (await db.select(memberColumns).from(t.users).orderBy(asc(t.users.name))) as TeamMember[];
       },
       async get(id) {
-        const [row] = await db.select().from(t.users).where(eq(t.users.id, id));
+        const [row] = await db.select(memberColumns).from(t.users).where(eq(t.users.id, id));
         return (row as TeamMember | undefined) ?? null;
       },
       async invite(input) {
-        const [existing] = await db.select({ id: t.users.id }).from(t.users).where(ilike(t.users.email, input.email));
+        // Exact, case-insensitive match (ILIKE would treat _ and % in the address as wildcards).
+        const [existing] = await db.select({ id: t.users.id }).from(t.users).where(sql`lower(${t.users.email}) = lower(${input.email})`);
         if (existing) throw new Error('A member with this email already exists');
         const [row] = await db
           .insert(t.users)
           .values({ id: `usr_${Date.now().toString(36)}`, name: input.name, email: input.email, role: input.role, status: 'invited', presence: 'offline', lastActiveAt: new Date().toISOString() })
-          .returning();
+          .returning(memberColumns);
         return row as TeamMember;
       },
       async updateRole(id, role) {
-        const [row] = await db.update(t.users).set({ role }).where(eq(t.users.id, id)).returning();
+        const [row] = await db.update(t.users).set({ role }).where(eq(t.users.id, id)).returning(memberColumns);
         return (row as TeamMember | undefined) ?? null;
       },
       async updateAccount(id, input) {
-        const [row] = await db.update(t.users).set(input).where(eq(t.users.id, id)).returning();
+        const [row] = await db.update(t.users).set(input).where(eq(t.users.id, id)).returning(memberColumns);
         return (row as TeamMember | undefined) ?? null;
       },
       async remove(id) {
         const rows = await db.delete(t.users).where(eq(t.users.id, id)).returning({ id: t.users.id });
         return rows.length > 0;
+      },
+    },
+
+    auth: {
+      async passwordHash(userId) {
+        const [row] = await db.select({ hash: t.users.passwordHash }).from(t.users).where(eq(t.users.id, userId));
+        return row?.hash ?? null;
+      },
+      async setPasswordHash(userId, hash) {
+        await db.update(t.users).set({ passwordHash: hash }).where(eq(t.users.id, userId));
+      },
+    },
+
+    invitations: {
+      async create(input) {
+        const invitation = { id: `inv_${crypto.randomUUID()}`, ...input };
+        const [row] = await db.transaction(async (tx) => {
+          await tx.delete(t.invitations).where(and(eq(t.invitations.userId, input.userId), isNull(t.invitations.acceptedAt)));
+          return tx.insert(t.invitations).values(invitation).returning(invitationColumns);
+        });
+        return row!;
+      },
+      async findByTokenHash(tokenHash) {
+        const [row] = await db.select(invitationColumns).from(t.invitations).where(eq(t.invitations.tokenHash, tokenHash));
+        return row ?? null;
+      },
+      async accept(id, passwordHash) {
+        return db.transaction(async (tx) => {
+          const now = new Date().toISOString();
+          // The acceptedAt IS NULL guard makes a double submit a no-op instead of a second activation.
+          const [invitation] = await tx.update(t.invitations).set({ acceptedAt: now }).where(and(eq(t.invitations.id, id), isNull(t.invitations.acceptedAt))).returning({ userId: t.invitations.userId });
+          if (!invitation) return null;
+          const [member] = await tx.update(t.users).set({ status: 'active', passwordHash, lastActiveAt: now }).where(eq(t.users.id, invitation.userId)).returning(memberColumns);
+          return (member as TeamMember | undefined) ?? null;
+        });
       },
     },
 

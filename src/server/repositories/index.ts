@@ -2,7 +2,7 @@ import 'server-only';
 import { createMemoryRepository } from './memory-repository';
 import type { Repository } from './types';
 
-export type { Repository } from './types';
+export type { Invitation, Repository } from './types';
 
 let repository: Repository | undefined;
 

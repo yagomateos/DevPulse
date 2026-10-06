@@ -1,13 +1,9 @@
 // @vitest-environment node
-import { PGlite } from '@electric-sql/pglite';
-import { drizzle } from 'drizzle-orm/pglite';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { deploymentQuerySchema, incidentQuerySchema, pullRequestQuerySchema } from '@/schemas/query';
+import { createTestDb } from '../../../tests/setup/pglite';
 import { createDataset } from '../data/dataset';
 import type { Database } from '../db/client';
-import * as schema from '../db/schema';
 import { seedDatabase } from '../db/seed-data';
 import { createPostgresRepository } from './postgres-repository';
 import type { Repository } from './types';
@@ -20,12 +16,7 @@ import type { Repository } from './types';
 let repo: Repository;
 
 beforeAll(async () => {
-  const client = new PGlite();
-  const db = drizzle(client, { schema });
-  const migration = readFileSync(join(process.cwd(), 'drizzle/0000_init.sql'), 'utf8');
-  for (const statement of migration.split('--> statement-breakpoint')) {
-    if (statement.trim()) await client.exec(statement);
-  }
+  const db = await createTestDb();
   await seedDatabase(db, createDataset(Date.UTC(2026, 9, 5, 10)));
   // Same Drizzle query builder API; only the driver differs from postgres-js.
   repo = createPostgresRepository(db as unknown as Database);

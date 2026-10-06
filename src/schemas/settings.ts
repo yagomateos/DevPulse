@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { isValidTimeZone } from '@/lib/timezones';
+import { newPasswordSchema } from './auth';
 
 export const generalSettingsSchema = z.object({
   workspaceName: z.string().trim().min(2, 'Workspace name is required').max(48),
@@ -31,11 +32,7 @@ export const notificationSettingsSchema = z.object({
 export const securitySettingsSchema = z
   .object({
     currentPassword: z.string().min(1, 'Current password is required'),
-    newPassword: z
-      .string()
-      .min(10, 'Use at least 10 characters')
-      .regex(/[A-Z]/, 'Include an uppercase letter')
-      .regex(/[0-9]/, 'Include a number'),
+    newPassword: newPasswordSchema,
     confirmPassword: z.string(),
   })
   .refine((v) => v.newPassword === v.confirmPassword, {

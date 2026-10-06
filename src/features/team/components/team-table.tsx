@@ -1,6 +1,6 @@
 'use client';
 
-import { MoreHorizontal, Trash2, UserPlus } from 'lucide-react';
+import { MailPlus, MoreHorizontal, Trash2, UserPlus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { DataTableColumnHeader } from '@/components/data-table/column-header';
@@ -18,7 +18,8 @@ import { usePermissions } from '@/features/auth/hooks/use-permissions';
 import { cn } from '@/lib/utils';
 import { useDialogStore } from '@/stores/dialog-store';
 import { ROLES, type Role, type TeamMember } from '@/types/domain';
-import { useChangeRole, useRemoveMember, useTeam } from '../hooks/use-team';
+import { useChangeRole, useRemoveMember, useResendInvitation, useTeam } from '../hooks/use-team';
+import { notifyInvitation } from '../lib/invitation-toast';
 
 const PRESENCE_TONE = { online: 'bg-success', away: 'bg-warning', offline: 'bg-muted-foreground/40' } as const;
 const roleLabel = (r: Role) => r.charAt(0) + r.slice(1).toLowerCase();
@@ -27,7 +28,9 @@ function MemberActions({ member, onRemove }: { member: TeamMember; onRemove: (m:
   const { user } = useSession();
   const { can } = usePermissions();
   const changeRole = useChangeRole();
-  if (member.id === user.id || (!can('team:change-role') && !can('team:remove'))) return null;
+  const resend = useResendInvitation();
+  const canResend = member.status === 'invited' && can('team:invite') && (member.role !== 'ADMIN' || user.role === 'ADMIN');
+  if (member.id === user.id || (!can('team:change-role') && !can('team:remove') && !canResend)) return null;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -36,6 +39,17 @@ function MemberActions({ member, onRemove }: { member: TeamMember; onRemove: (m:
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
+        {canResend && (
+          <>
+            <DropdownMenuItem
+              disabled={resend.isPending}
+              onSelect={() => resend.mutate(member.id, { onSuccess: notifyInvitation, onError: (e) => toast.error('Could not resend the invitation', { description: e.message }) })}
+            >
+              <MailPlus className="mr-2 size-3.5" aria-hidden /> Resend invitation
+            </DropdownMenuItem>
+            {(can('team:change-role') || can('team:remove')) && <DropdownMenuSeparator />}
+          </>
+        )}
         {can('team:change-role') && (
           <>
             <DropdownMenuLabel className="text-xs text-muted-foreground">Change role</DropdownMenuLabel>
