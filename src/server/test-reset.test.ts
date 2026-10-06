@@ -18,3 +18,16 @@ describe('test data reset guard', () => {
     expect(isResetAllowed('s3cret')).toBe(true);
   });
 });
+
+describe('cron refresh', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('accepts the Vercel CRON_SECRET bearer token in production', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('TEST_RESET_TOKEN', '');
+    vi.stubEnv('CRON_SECRET', 'cron-123');
+    expect(isResetAllowed(null, 'Bearer cron-123')).toBe(true);
+    expect(isResetAllowed(null, 'Bearer nope')).toBe(false);
+    expect(isResetAllowed(null, null)).toBe(false);
+  });
+});
