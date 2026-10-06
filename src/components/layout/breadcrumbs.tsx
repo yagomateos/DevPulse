@@ -3,7 +3,6 @@
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Fragment } from 'react';
 import { cn } from '@/lib/utils';
 import { useCachedQueryData } from '@/hooks/use-cached-query-data';
 import { queryKeys } from '@/lib/query-keys';
@@ -61,20 +60,19 @@ export function Breadcrumbs({ className }: { className?: string }) {
         {crumbs.map((crumb, i) => {
           const last = i === crumbs.length - 1;
           return (
-            <Fragment key={crumb.href}>
-              {i > 0 && <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/60" aria-hidden />}
-              <li className={cn('min-w-0', !last && 'hidden sm:block')}>
-                {last ? (
-                  <span aria-current="page" className="block truncate font-medium text-foreground">
-                    {crumb.label}
-                  </span>
-                ) : (
-                  <Link href={crumb.href} className="block truncate rounded text-muted-foreground hover:text-foreground">
-                    {crumb.label}
-                  </Link>
-                )}
-              </li>
-            </Fragment>
+            // Separators live inside each <li> (valid list markup) and hide with it on small screens.
+            <li key={crumb.href} className={cn('flex min-w-0 items-center gap-1', !last && 'hidden sm:flex')}>
+              {i > 0 && <ChevronRight className={cn('size-3.5 shrink-0 text-muted-foreground/60', last && 'hidden sm:block')} aria-hidden />}
+              {last ? (
+                <span aria-current="page" className="block truncate font-medium text-foreground">
+                  {crumb.label}
+                </span>
+              ) : (
+                <Link href={crumb.href} className="block truncate rounded text-muted-foreground hover:text-foreground">
+                  {crumb.label}
+                </Link>
+              )}
+            </li>
           );
         })}
       </ol>

@@ -9,10 +9,37 @@ The project is a **frontend engineering showcase**. Most of the work is in the R
 > **Demo login:** `demo@example.com` / `demo123`. In demo mode (the default) you choose a role (Admin, Manager or Developer) at sign-in and can switch it later from the user menu to explore RBAC. With `DEMO_MODE=false` the role always comes from the member record — see [Security model](#security-model).
 > The app runs **fully offline**: in-memory data and a deterministic demo AI model. Add an `AI_API_KEY` to use a real LLM.
 
+## Highlights
+
+- **Next.js 16 App Router done properly:** Server Components that stream and hydrate the TanStack Query cache, nested layouts, route-level loading/error/not-found with real HTTP 404s, Route Handlers, Server Actions and a `proxy.ts`.
+- **A reusable `<DataTable />`:** server or client mode, URL-synced filters/sorting/pagination, column visibility, selection, keyboard navigation and mobile cards. Used on five screens.
+- **AI as product features, not a chatbot:** structured PR / deployment / incident analyses rendered as components (risk gauge, grouped findings *inline in the diff*, evidence, recommendations), plus a context-aware assistant that streams and cites its sources.
+- **Verified quality:**
+  - 115 Vitest tests and 17 Playwright tests, including an axe WCAG 2.1 AA audit in both themes;
+  - Lighthouse accessibility 100 and CLS 0;
+  - CI on GitHub runs everything against both the in-memory store and PostgreSQL.
+
+## Screenshots
+
+| | |
+| --- | --- |
+| ![Dashboard with KPIs, sparklines and interactive charts](docs/screenshots/dashboard.png) | ![Structured AI code review of PR #312 with a risk gauge and grouped findings](docs/screenshots/pr-ai-review.png) |
+| **Dashboard.** URL-driven filters, KPIs with drill-down, lazy-loaded charts. | **AI code review.** Structured output rendered as components, not text. |
+| ![AI findings rendered inline in the diff next to review comments](docs/screenshots/pr-inline-findings.png) | ![Latency and error rate around deployment #128 with a before/after table](docs/screenshots/deployment-performance.png) |
+| **Findings inline in the diff**, next to human review comments. | **Deployment performance** before and after the release. |
+| ![AI incident investigation with likely cause, evidence and confidence](docs/screenshots/incident-investigation.png) | ![Ask AI side panel answering with citations about the current deployment](docs/screenshots/ask-ai-panel.png) |
+| **Incident investigation:** likely cause, linked evidence, confidence. | **Ask AI panel.** Knows the page you are on, streams and cites sources. |
+| ![Command palette with grouped, highlighted search results](docs/screenshots/command-palette.png) | ![Pull requests table in the light theme](docs/screenshots/pull-requests-light.png) |
+| **⌘K palette:** commands plus grouped, highlighted global search. | **Light theme** and the reusable DataTable. |
+
+<p align="center"><img src="docs/screenshots/mobile-incidents.png" alt="Incidents on mobile rendered as cards" width="300" /><br /><em>Mobile: drawer navigation and tables rendered as cards.</em></p>
+
 ---
 
 ## Contents
 
+- [Highlights](#highlights)
+- [Screenshots](#screenshots)
 - [Demo flow](#demo-flow)
 - [Tech stack](#tech-stack)
 - [Architecture](#architecture)

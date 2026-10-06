@@ -763,11 +763,11 @@ function buildDeployments(random: Random, now: number, prs: PullRequest[]): Depl
 
 /* ------------------------------- Incidents -------------------------------- */
 
-function incidentTimeline(id: string, start: number, opts: { deploymentHref?: string; status: IncidentStatus; assignee: string | null; service: string }): TimelineEvent[] {
+function incidentTimeline(id: string, start: number, opts: { deploymentHref?: string; deploymentStartedAt?: string; status: IncidentStatus; assignee: string | null; service: string }): TimelineEvent[] {
   const events: TimelineEvent[] = [];
   const at = (minutes: number) => new Date(start + minutes * MINUTE).toISOString();
   if (opts.deploymentHref) {
-    events.push({ id: `${id}-e1`, type: 'deployment', title: 'Production deployment started', description: 'Deployment #128 (b8e2c41) began rolling out to production.', occurredAt: at(-8), actor: 'Sarah Kim', href: opts.deploymentHref, metadata: { commit: 'b8e2c41', environment: 'production' } });
+    events.push({ id: `${id}-e1`, type: 'deployment', title: 'Production deployment started', description: 'Deployment #128 (b8e2c41) began rolling out to production.', occurredAt: opts.deploymentStartedAt ?? at(-8), actor: 'Sarah Kim', href: opts.deploymentHref, metadata: { commit: 'b8e2c41', environment: 'production' } });
   }
   events.push(
     { id: `${id}-e2`, type: 'error', title: 'Error rate spike', description: `5xx rate on ${opts.service} rose from 0.6% to 3.2% within two minutes.`, occurredAt: at(-5), actor: null, metadata: { from: '0.6%', to: '3.2%' } },
@@ -794,7 +794,7 @@ function buildIncidents(now: number, deployments: Deployment[]): Incident[] {
     service: string; assignee: string | null; affectedUsers: number; startedMinutesAgo: number; related?: string;
   }[] = [
     { id: 'inc-42', projectId: 'orion-gateway', title: 'Authentication timeouts on API gateway', description: 'Users intermittently fail to sign in. Token issuance requests time out and the 5xx rate on auth-service is above SLO since the latest production deployment.', severity: 'sev1', status: 'investigating', service: 'auth-service', assignee: 'Sarah Kim', affectedUsers: 1240, startedMinutesAgo: Math.round((now - heroStart) / MINUTE), related: heroDeploy.id },
-    { id: 'inc-41', projectId: 'orion-gateway', title: 'Database connection pool exhaustion', description: 'The primary database connection pool is saturated, causing cascading timeouts in services that share it.', severity: 'sev2', status: 'identified', service: 'database', assignee: 'Noah Garcia', affectedUsers: 3400, startedMinutesAgo: Math.round((now - heroStart) / MINUTE) - 4, related: heroDeploy.id },
+    { id: 'inc-41', projectId: 'orion-gateway', title: 'Database connection pool exhaustion', description: 'The primary database connection pool is saturated, causing cascading timeouts in services that share it.', severity: 'sev2', status: 'identified', service: 'database', assignee: 'Noah Garcia', affectedUsers: 3400, startedMinutesAgo: Math.round((now - heroStart) / MINUTE) + 4, related: heroDeploy.id },
     { id: 'inc-40', projectId: 'atlas-web', title: 'Dashboard widgets blank behind corporate proxies', description: 'Some customers on restrictive networks see empty widgets; WebSocket upgrade is blocked and there is no polling fallback.', severity: 'sev3', status: 'monitoring', service: 'websocket-gateway', assignee: 'Marcus Rivera', affectedUsers: 87, startedMinutesAgo: 300 },
     { id: 'inc-39', projectId: 'atlas-web', title: 'Slow chart rendering on large datasets', description: 'Charts with more than 5k points block the main thread for over 400ms.', severity: 'sev4', status: 'resolved', service: 'chart-renderer', assignee: 'Jordan Lee', affectedUsers: 23, startedMinutesAgo: 60 * 50 },
     { id: 'inc-38', projectId: 'orion-gateway', title: 'Rate limiter blocking legitimate traffic', description: 'A configuration change made the limiter too aggressive for high-volume API clients.', severity: 'sev3', status: 'resolved', service: 'rate-limiter', assignee: 'Sarah Kim', affectedUsers: 450, startedMinutesAgo: 60 * 76 },
@@ -820,7 +820,7 @@ function buildIncidents(now: number, deployments: Deployment[]): Incident[] {
       createdAt: new Date(start).toISOString(),
       resolvedAt: s.status === 'resolved' ? new Date(start + 70 * MINUTE).toISOString() : null,
       relatedDeploymentId: s.related ?? null,
-      timeline: incidentTimeline(s.id, start, { deploymentHref, status: s.status, assignee: s.assignee, service: s.service }),
+      timeline: incidentTimeline(s.id, start, { deploymentHref, deploymentStartedAt: relatedDeploy?.startedAt, status: s.status, assignee: s.assignee, service: s.service }),
     };
   });
 }
