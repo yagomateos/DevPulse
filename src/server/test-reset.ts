@@ -5,22 +5,30 @@ import { resetPasswords } from './auth/credentials';
 import { resetMemoryStore } from './repositories/memory-repository';
 
 /**
- * Restores the pristine demo dataset so end-to-end runs are isolated and
- * repeatable. Only reachable in development, or in a production build when
- * TEST_RESET_TOKEN is configured (CI) and the request carries it.
+ * Restores the pristine demo dataset: keeps end-to-end runs isolated and lets
+ * the public demo refresh itself daily (Vercel Cron). Only reachable in
+ * development, with TEST_RESET_TOKEN (CI), or with the Vercel CRON_SECRET.
  */
-export function isResetAllowed(token: string | null) {
+export function isResetAllowed(token: string | null, authorization: string | null = null) {
   if (process.env.NODE_ENV !== 'production') return true;
   const expected = process.env.TEST_RESET_TOKEN;
-  return !!expected && token === expected;
+  if (expected && token === expected) return true;
+  const cronSecret = process.env.CRON_SECRET;
+  return !!cronSecret && authorization === `Bearer ${cronSecret}`;
 }
 
-export async function resetAllData() {
+/**
+ * `keepUserProjects` (the daily cron) only refreshes the demo projects and keeps
+ * the ones people created, e.g. real repositories synced from GitHub. Test runs
+ * use the full reset so every run starts from the exact same dataset. The
+ * in-memory store is ephemeral anyway and always resets fully.
+ */
+export async function resetAllData({ keepUserProjects = false } = {}) {
   resetLoginRateLimit();
   resetPasswords();
   if (process.env.DATA_SOURCE === 'postgres') {
-    const [{ getDb }, { seedDatabase }] = await Promise.all([import('./db/client'), import('./db/seed-data')]);
-    await seedDatabase(getDb(), createDataset());
+    const [{ getDb }, { seedDatabase, refreshDemoData }] = await Promise.all([import('./db/client'), import('./db/seed-data')]);
+    await (keepUserProjects ? refreshDemoData : seedDatabase)(getDb(), createDataset());
   } else {
     resetMemoryStore();
   }

@@ -1,7 +1,10 @@
 # DevPulse
+
 [![CI](https://github.com/yagomateos/DevPulse/actions/workflows/ci.yml/badge.svg)](https://github.com/yagomateos/DevPulse/actions/workflows/ci.yml)
 
-A SaaS workspace for software teams: projects, pull requests, deployments and incidents, with AI analysis built into each of those workflows.
+**Live demo: [devpulse-hq.vercel.app](https://devpulse-hq.vercel.app)** · sign in with `demo@example.com` / `demo123`.
+
+DevPulse is an AI engineering workspace for software teams: projects, pull requests, deployments and incidents, with AI analysis built into each of those workflows.
 
 The project is a **frontend engineering showcase**. Most of the work is in the React and Next.js architecture: composition, state ownership, data fetching, forms, a reusable data table, accessibility, performance and tests. The backend stays deliberately small. Its only job is to support the UI behind a typed seam that can be swapped out.
 
@@ -248,7 +251,7 @@ Lighthouse's simulated mode reports LCP ≈ 3.3–3.9 s on workspace pages; with
 ## Testing
 
 ```bash
-npm test              # Vitest: unit + component + SQL integration (130 tests, coverage ratchet)
+npm test              # Vitest: unit + component + SQL integration (133 tests, coverage ratchet)
 npm run test:coverage
 npm run test:e2e      # Playwright: journeys + axe audit, desktop & mobile (17 tests)
 ```
@@ -332,6 +335,7 @@ All variables are optional. See [`.env.example`](.env.example).
 
 ## Deployment
 
+- **Vercel (live demo).** Deployed to `fra1` with **Neon Postgres** from the Vercel Marketplace (`DATA_SOURCE=postgres`), so all serverless functions share state. A daily **Vercel Cron** calls `/api/test/reset` (authorised with `CRON_SECRET`) to restore the demo projects. Projects created by users (such as real repositories synced from GitHub) and their data are kept; test runs still use a full reset. A second cron reconciles the GitHub sync. Required env vars: `AUTH_SECRET`, `DATA_SOURCE`, `DATABASE_URL` (provisioned by the integration), `CRON_SECRET`, plus `GITHUB_WEBHOOK_SECRET` / `GITHUB_TOKEN` for the GitHub sync.
 - **Node hosting.** `npm run build && npm start`. The build emits Next.js `standalone` output and copies its static assets; `npm start` runs `node .next/standalone/server.js` (honours `PORT`/`HOSTNAME`). Set `AUTH_SECRET` and, optionally, the AI and database variables.
 - **Docker.** A multi-stage `Dockerfile` produces a ~310 MB non-root `runner` image with a healthcheck, plus a `migrator` image that applies Drizzle migrations and seeds data.
 - **CI.** `.github/workflows/ci.yml` runs lint, typecheck and unit tests with coverage; then the production build plus Playwright against both the in-memory store and a PostgreSQL service; and builds both Docker images. All jobs pass on GitHub Actions.
