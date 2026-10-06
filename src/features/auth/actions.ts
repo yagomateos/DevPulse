@@ -2,13 +2,14 @@
 
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { loginSchema, type LoginInput } from '@/schemas/auth';
+import { acceptInvitationSchema, loginSchema, type AcceptInvitationInput, type LoginInput } from '@/schemas/auth';
 import { ROLES, type Role } from '@/types/domain';
 import { verifyPassword } from '@/server/auth/credentials';
 import { checkLoginAllowed, clearLoginFailures, recordLoginFailure } from '@/server/auth/rate-limit';
 import { createSession, destroySession, getSession } from '@/server/auth/session';
 import { isDemoMode } from '@/server/config';
 import { getRepository } from '@/server/repositories';
+import { acceptInvitation } from '@/server/team/invitations';
 
 export type LoginResult = { ok: true; redirectTo: string } | { ok: false; error: string; fieldErrors?: Partial<Record<keyof LoginInput, string>> };
 
@@ -36,7 +37,7 @@ export async function login(input: LoginInput, next?: string | null): Promise<Lo
 
   const repo = await getRepository();
   const member = (await repo.team.list()).find((m) => m.email.toLowerCase() === parsed.data.email.toLowerCase());
-  if (!member || member.status !== 'active' || !verifyPassword(member.id, parsed.data.password)) {
+  if (!member || member.status !== 'active' || !(await verifyPassword(repo, member.id, parsed.data.password))) {
     recordLoginFailure(limitKey);
     return { ok: false, error: 'Invalid email or password.' };
   }
@@ -47,6 +48,27 @@ export async function login(input: LoginInput, next?: string | null): Promise<Lo
   await createSession(member.id, role);
   const { general } = await repo.settings.get();
   return { ok: true, redirectTo: safeRedirect(next, LANDING_PATHS[general.defaultLanding]) };
+}
+
+export type AcceptInvitationResult = { ok: true; redirectTo: string } | { ok: false; error: string; fieldErrors?: Partial<Record<keyof AcceptInvitationInput, string>> };
+
+const INVITATION_ERRORS = {
+  invalid: 'This invitation link is not valid. Ask your admin to send a new one.',
+  expired: 'This invitation has expired. Ask your admin to send a new one.',
+  accepted: 'This invitation was already used. Sign in with your email and password.',
+} as const;
+
+/** Sets the invitee's password, activates the member and signs them in. */
+export async function acceptInvitationAction(token: string, input: AcceptInvitationInput): Promise<AcceptInvitationResult> {
+  const parsed = acceptInvitationSchema.safeParse(input);
+  if (!parsed.success) {
+    const fieldErrors = Object.fromEntries(parsed.error.issues.map((i) => [i.path[0], i.message]));
+    return { ok: false, error: 'Please fix the highlighted fields.', fieldErrors };
+  }
+  const result = await acceptInvitation(await getRepository(), token, parsed.data.password);
+  if (!result.ok) return { ok: false, error: INVITATION_ERRORS[result.status] };
+  await createSession(result.member.id, result.member.role);
+  return { ok: true, redirectTo: '/dashboard' };
 }
 
 export async function logout() {

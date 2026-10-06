@@ -28,6 +28,15 @@ import type {
  * Server Components only talk to this interface, so the in-memory demo store
  * can be swapped for Postgres (Drizzle) without touching the UI.
  */
+export interface Invitation {
+  id: string;
+  userId: string;
+  invitedBy: string;
+  expiresAt: string;
+  acceptedAt: string | null;
+  createdAt: string;
+}
+
 export interface Repository {
   projects: {
     list(filter?: { q?: string }): Promise<Project[]>;
@@ -60,6 +69,21 @@ export interface Repository {
     updateRole(id: string, role: Role): Promise<TeamMember | null>;
     updateAccount(id: string, input: AccountSettings): Promise<TeamMember | null>;
     remove(id: string): Promise<boolean>;
+  };
+  /** Credentials never travel with TeamMember: they are read and written only here. */
+  auth: {
+    passwordHash(userId: string): Promise<string | null>;
+    setPasswordHash(userId: string, hash: string): Promise<void>;
+  };
+  invitations: {
+    /** Replaces the member's pending invitations, so only the newest link works. */
+    create(input: { userId: string; tokenHash: string; invitedBy: string; expiresAt: string }): Promise<Invitation>;
+    findByTokenHash(tokenHash: string): Promise<Invitation | null>;
+    /**
+     * Atomically marks the invitation accepted, activates the member and stores
+     * the password hash. Returns null if it was already accepted (double submit).
+     */
+    accept(id: string, passwordHash: string): Promise<TeamMember | null>;
   };
   notifications: {
     list(): Promise<Notification[]>;

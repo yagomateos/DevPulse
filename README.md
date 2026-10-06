@@ -17,7 +17,7 @@ The project is a **frontend engineering showcase**. Most of the work is in the R
 - **A reusable `<DataTable />`:** server or client mode, URL-synced filters/sorting/pagination, column visibility, selection, keyboard navigation and mobile cards. Used on five screens.
 - **AI as product features, not a chatbot:** structured PR / deployment / incident analyses rendered as components (risk gauge, grouped findings *inline in the diff*, evidence, recommendations), plus a context-aware assistant that streams and cites its sources.
 - **Verified quality:**
-  - 134 Vitest tests and 17 Playwright tests, including an axe WCAG 2.1 AA audit in both themes;
+  - 150 Vitest tests and 19 Playwright tests, including an axe WCAG 2.1 AA audit in both themes;
   - Lighthouse accessibility 100 and CLS 0;
   - CI on GitHub runs everything against both the in-memory store and PostgreSQL.
 
@@ -211,7 +211,8 @@ URL updates go through the History API, which the App Router keeps in sync with 
 - **Demo mode (`DEMO_MODE`, on by default).** Unlocks portfolio conveniences: choosing your role at sign-in, switching roles, simulating session expiry and per-request network switches (`x-mock-network`, `?__fail=1`). `DEMO_MODE=false` disables all of them and takes the role from the member record.
 - **Abuse and CSRF.** Failed sign-ins are rate-limited per email + IP (5 per minute, in-memory per instance). State-changing API requests must come from the app's own origin, on top of `SameSite` cookies.
 - **Headers.** Production responses send a Content-Security-Policy (`'self'` only; `'unsafe-inline'` for scripts because Next streams its RSC payload inline), `X-Frame-Options`, `nosniff`, `Referrer-Policy` and `Permissions-Policy`.
-- **Known limits.** Tokens can't be revoked server-side (sign-out clears the cookie), the rate limiter is per instance, and demo passwords live in memory.
+- **Passwords and invitations.** Passwords are stored as scrypt hashes in the database (`server/auth/password.ts`); seeded demo accounts without one use the demo password. Inviting a member emails a single-use link (`/invite/<token>`) that expires in 7 days. Only the token's SHA-256 is stored, a new invitation revokes the previous link, and acceptance is atomic, so a double submit can't activate twice. Without `RESEND_API_KEY` nothing is emailed and the inviter gets the link to share instead. Password hashes never leave the repository layer.
+- **Known limits.** Tokens can't be revoked server-side (sign-out clears the cookie) and the rate limiter is per instance.
 
 ## Accessibility & performance
 
@@ -251,9 +252,9 @@ Lighthouse's simulated mode reports LCP ≈ 3.3–3.9 s on workspace pages; with
 ## Testing
 
 ```bash
-npm test              # Vitest: unit + component + SQL integration (134 tests, coverage ratchet)
+npm test              # Vitest: unit + component + SQL integration (150 tests, coverage ratchet)
 npm run test:coverage
-npm run test:e2e      # Playwright: journeys + axe audit, desktop & mobile (17 tests)
+npm run test:e2e      # Playwright: journeys + axe audit, desktop & mobile (19 tests)
 ```
 
 - **Live LLM path** is tested against a fake OpenAI-compatible provider: strict JSON schema in the request, Zod validation of the response (502 on mismatch), the tool-calling loop with citations, SSE streaming and provider errors.
@@ -329,6 +330,9 @@ All variables are optional. See [`.env.example`](.env.example).
 | `GITHUB_TOKEN` | Fine-grained token (Pull requests + Checks, read-only) for the GitHub sync. Optional for public repos. |
 | `GITHUB_WEBHOOK_SECRET` | Shared secret for verifying GitHub webhook signatures. Without it the webhook returns 503. |
 | `CRON_SECRET` | Bearer token Vercel Cron sends to `/api/cron/github-sync` |
+| `RESEND_API_KEY` | [Resend](https://resend.com) key for invitation emails. Without it, invitations still work and the inviter copies the link. |
+| `EMAIL_FROM` | Sender, e.g. `DevPulse <team@yourdomain.com>`. The domain must be verified in Resend; the default sandbox sender only delivers to the Resend account owner. |
+| `APP_URL` | Public URL used in invitation links (falls back to the request origin) |
 | `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` | Any OpenAI-compatible endpoint. Without a key, the demo model is used. |
 | `MOCK_NETWORK=off` | Disables simulated latency and failures (used in tests) |
 | `INSECURE_COOKIES=true` | Allows the session cookie over plain HTTP (local Docker) |

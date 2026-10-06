@@ -9,7 +9,7 @@ type AnyPgDatabase = PgDatabase<PgQueryResultHKT, typeof schema>;
 /** Inserts the demo dataset. Shared by `npm run db:seed` and the integration tests. */
 export async function seedDatabase(db: AnyPgDatabase, data: Dataset) {
   await db.transaction(async (tx) => {
-    for (const table of [schema.aiAnalyses, schema.teamMembers, schema.notifications, schema.incidents, schema.deployments, schema.pullRequests, schema.projects, schema.users, schema.workspaceSettings]) {
+    for (const table of [schema.aiAnalyses, schema.invitations, schema.teamMembers, schema.notifications, schema.incidents, schema.deployments, schema.pullRequests, schema.projects, schema.users, schema.workspaceSettings]) {
       await tx.delete(table);
     }
     await tx.insert(schema.users).values(data.members);
@@ -32,14 +32,27 @@ export async function seedDatabase(db: AnyPgDatabase, data: Dataset) {
 }
 
 /**
- * Daily demo refresh that keeps user-created projects: every project that is
- * not part of the demo dataset survives with its pull requests, deployments,
- * incidents, members and AI analyses; everything else is reseeded. Runs in one
- * transaction (the reseed nests as a savepoint), so readers never see a gap.
+ * Daily demo refresh that keeps what real people created:
+ * - every project that is not part of the demo dataset, with its pull
+ *   requests, deployments, incidents, members and AI analyses;
+ * - every non-demo user who accepted an invitation or still has an unexpired
+ *   one, with their password hash and invitations (abandoned invites made by
+ *   demo visitors are dropped once they expire). Timestamps are compared with
+ *   Date.parse: Postgres returns `2026-10-13 18:00:00+00`, not ISO strings.
+ * Everything else is reseeded. Runs in one transaction (the reseed nests as a
+ * savepoint), so readers never see a gap.
  */
 export async function refreshDemoData(db: AnyPgDatabase, data: Dataset) {
   const demoIds = data.projects.map((p) => p.id);
+  const demoUserIds = data.members.map((m) => m.id);
   await db.transaction(async (tx) => {
+    const now = Date.now();
+    const outsiders = await tx.select().from(schema.users).where(notInArray(schema.users.id, demoUserIds));
+    const outsiderInvites = outsiders.length ? await tx.select().from(schema.invitations).where(inArray(schema.invitations.userId, outsiders.map((u) => u.id))) : [];
+    const keepUsers = outsiders.filter((u) => u.status === 'active' || outsiderInvites.some((i) => i.userId === u.id && !i.acceptedAt && Date.parse(i.expiresAt) > now));
+    const keepUserIds = new Set(keepUsers.map((u) => u.id));
+    const keepInvites = outsiderInvites.filter((i) => keepUserIds.has(i.userId));
+
     const keep = await tx.select().from(schema.projects).where(notInArray(schema.projects.id, demoIds));
     const keepIds = keep.map((p) => p.id);
     const [prs, deploys, incs, members, analyses] = keepIds.length
@@ -53,9 +66,11 @@ export async function refreshDemoData(db: AnyPgDatabase, data: Dataset) {
       : [[], [], [], [], []];
 
     await seedDatabase(tx, data);
+    if (keepUsers.length) await tx.insert(schema.users).values(keepUsers);
+    if (keepInvites.length) await tx.insert(schema.invitations).values(keepInvites);
     if (!keepIds.length) return;
 
-    const users = new Set(data.members.map((m) => m.id));
+    const users = new Set([...demoUserIds, ...keepUserIds]);
     const targets = new Set([...prs, ...deploys, ...incs].map((r) => r.id));
     await tx.insert(schema.projects).values(keep.map((p) => ({ ...p, ownerId: p.ownerId && users.has(p.ownerId) ? p.ownerId : null })));
     if (prs.length) await tx.insert(schema.pullRequests).values(prs);

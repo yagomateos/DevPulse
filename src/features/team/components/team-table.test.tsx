@@ -7,6 +7,9 @@ import { mockFetch } from '../../../../tests/setup/fetch-mock';
 import { createTestQueryClient, jsonResponse, renderWithProviders } from '../../../../tests/setup/render';
 import { TeamTable } from './team-table';
 
+const toast = vi.hoisted(() => ({ success: vi.fn(), warning: vi.fn(), error: vi.fn() }));
+vi.mock('sonner', () => ({ toast }));
+
 const { members } = createDataset();
 
 function setup(role: 'ADMIN' | 'MANAGER' = 'ADMIN') {
@@ -19,6 +22,7 @@ const row = (name: string) => screen.getByRole('row', { name: new RegExp(name) }
 
 describe('TeamTable', () => {
   afterEach(() => {
+    vi.clearAllMocks();
     vi.unstubAllGlobals();
     window.history.replaceState(null, '', '/');
   });
@@ -46,9 +50,26 @@ describe('TeamTable', () => {
     expect(await screen.findByRole('row', { name: /Jordan Lee/ })).toBeInTheDocument();
   });
 
-  it('managers can invite but cannot change roles or remove members', () => {
+  it('managers can invite and resend invitations, but cannot change roles or remove members', async () => {
+    const user = userEvent.setup();
     setup('MANAGER');
     expect(screen.getByRole('button', { name: /invite/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /actions for/i })).not.toBeInTheDocument();
+    // Only the pending invitee (Lena) has actions for a manager.
+    expect(screen.getAllByRole('button', { name: /actions for/i })).toHaveLength(1);
+    await user.click(within(row('Lena Novak')).getByRole('button', { name: /actions for lena novak/i }));
+    expect(screen.getByRole('menuitem', { name: /resend invitation/i })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /remove member/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
+  });
+
+  it('resending an invitation offers the link when email is not configured', async () => {
+    const link = 'http://localhost/invite/abc';
+    mockFetch({ 'POST /api/team/usr_lena/invitation': { member: members.find((m) => m.id === 'usr_lena'), invitation: { link, expiresAt: '2026-10-13T00:00:00Z', emailDelivered: false, emailProblem: 'not-configured' } } });
+    const user = userEvent.setup();
+    setup();
+    await user.click(within(row('Lena Novak')).getByRole('button', { name: /actions for lena novak/i }));
+    await user.click(screen.getByRole('menuitem', { name: /resend invitation/i }));
+    await vi.waitFor(() => expect(toast.warning).toHaveBeenCalledWith('Invitation created, but the email was not sent', expect.objectContaining({ action: expect.objectContaining({ label: 'Copy link' }) })));
+    expect(toast.success).not.toHaveBeenCalled();
   });
 });

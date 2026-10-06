@@ -1,7 +1,6 @@
 import 'server-only';
 import { createDataset } from './data/dataset';
 import { resetLoginRateLimit } from './auth/rate-limit';
-import { resetPasswords } from './auth/credentials';
 import { resetMemoryStore } from './repositories/memory-repository';
 
 /**
@@ -25,7 +24,6 @@ export function isResetAllowed(token: string | null, authorization: string | nul
  */
 export async function resetAllData({ keepUserProjects = false } = {}) {
   resetLoginRateLimit();
-  resetPasswords();
   if (process.env.DATA_SOURCE === 'postgres') {
     const [{ getDb }, { seedDatabase, refreshDemoData }] = await Promise.all([import('./db/client'), import('./db/seed-data')]);
     await (keepUserProjects ? refreshDemoData : seedDatabase)(getDb(), createDataset());

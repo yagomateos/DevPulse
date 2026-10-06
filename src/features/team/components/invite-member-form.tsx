@@ -3,7 +3,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
-import { toast } from 'sonner';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -14,6 +13,7 @@ import { ROLE_DESCRIPTIONS } from '@/lib/permissions';
 import { inviteMemberSchema, type InviteMemberInput } from '@/schemas/team';
 import { ROLES } from '@/types/domain';
 import { useInviteMember } from '../hooks/use-team';
+import { notifyInvitation } from '../lib/invitation-toast';
 
 export function InviteMemberForm({ onDone }: { onDone: () => void }) {
   const { role: myRole } = usePermissions();
@@ -28,8 +28,8 @@ export function InviteMemberForm({ onDone }: { onDone: () => void }) {
   const onSubmit = (values: InviteMemberInput) => {
     setFormError(null);
     invite.mutate(values, {
-      onSuccess: (member) => {
-        toast.success('Invitation sent', { description: `${member.name} will join as ${member.role.toLowerCase()}.` });
+      onSuccess: (result) => {
+        notifyInvitation(result);
         onDone();
       },
       onError: (error) => setFormError(applyServerErrors(form, error)),

@@ -1,24 +1,21 @@
 import 'server-only';
+import type { Repository } from '../repositories';
+import { hashPassword, verifyPasswordHash } from './password';
 
 /**
- * Demo credential store (in memory). Every seeded member starts with the demo
- * password; changing it in Settings → Security really changes what login
- * accepts until the server restarts. A real deployment would delegate to an
- * identity provider.
+ * Credential checks backed by the repository, so they survive restarts and
+ * are shared by every serverless instance. Members who set a password (by
+ * accepting an invitation or in Settings → Security) are checked against its
+ * scrypt hash; seeded demo members without one keep the documented demo
+ * password.
  */
 const DEMO_PASSWORD = 'demo123';
-const store = globalThis as unknown as { __aiwPasswords?: Map<string, string> };
-const passwords = () => (store.__aiwPasswords ??= new Map());
 
-export function verifyPassword(userId: string, password: string) {
-  return (passwords().get(userId) ?? DEMO_PASSWORD) === password;
+export async function verifyPassword(repo: Repository, userId: string, password: string) {
+  const hash = await repo.auth.passwordHash(userId);
+  return hash ? verifyPasswordHash(password, hash) : password === DEMO_PASSWORD;
 }
 
-export function setPassword(userId: string, password: string) {
-  passwords().set(userId, password);
-}
-
-/** Test helper: back to the demo password for everyone. */
-export function resetPasswords() {
-  passwords().clear();
+export async function setPassword(repo: Repository, userId: string, password: string) {
+  await repo.auth.setPasswordHash(userId, await hashPassword(password));
 }

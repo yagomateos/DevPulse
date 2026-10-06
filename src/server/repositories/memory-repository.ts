@@ -16,28 +16,31 @@ import { applyIncidentUpdate, buildIncident, incidentNotification, nextIncidentN
 import { activityFromDataset, searchDataset } from '../data/projections';
 import { inSet, matchesText, paginate, sortBy } from '../data/query';
 import { DEFAULT_SETTINGS } from './defaults';
-import type { Repository } from './types';
+import type { Invitation, Repository } from './types';
 
 interface Store extends Dataset {
   settings: WorkspaceSettings;
   analyses: Map<string, AIAnalysisEnvelope<AIAnalysisKind>>;
+  passwords: Map<string, string>;
+  invitations: (Invitation & { tokenHash: string })[];
   createdAt: number;
+}
+
+function freshStore(now: number): Store {
+  return { ...createDataset(now), settings: structuredClone(DEFAULT_SETTINGS), analyses: new Map(), passwords: new Map(), invitations: [], createdAt: now };
 }
 
 // Survive dev-server HMR and share state across route handlers in one process.
 const globalStore = globalThis as unknown as { __aiwStore?: Store };
 
 function store(): Store {
-  if (!globalStore.__aiwStore) {
-    const now = Date.now();
-    globalStore.__aiwStore = { ...createDataset(now), settings: structuredClone(DEFAULT_SETTINGS), analyses: new Map(), createdAt: now };
-  }
+  globalStore.__aiwStore ??= freshStore(Date.now());
   return globalStore.__aiwStore;
 }
 
 /** Test helper: reset to a pristine dataset. */
 export function resetMemoryStore(now = Date.now()) {
-  globalStore.__aiwStore = { ...createDataset(now), settings: structuredClone(DEFAULT_SETTINGS), analyses: new Map(), createdAt: now };
+  globalStore.__aiwStore = freshStore(now);
 }
 
 const clone = <T>(value: T): T => structuredClone(value);
@@ -285,7 +288,45 @@ export function createMemoryRepository(): Repository {
         const s = store();
         const before = s.members.length;
         s.members = s.members.filter((m) => m.id !== id);
+        s.invitations = s.invitations.filter((i) => i.userId !== id);
+        s.passwords.delete(id);
         return s.members.length < before;
+      },
+    },
+
+    auth: {
+      async passwordHash(userId) {
+        return store().passwords.get(userId) ?? null;
+      },
+      async setPasswordHash(userId, hash) {
+        store().passwords.set(userId, hash);
+      },
+    },
+
+    invitations: {
+      async create(input) {
+        const s = store();
+        const invitation = { id: `inv_${crypto.randomUUID()}`, ...input, acceptedAt: null, createdAt: new Date().toISOString() };
+        s.invitations = [...s.invitations.filter((i) => i.userId !== input.userId || i.acceptedAt), invitation];
+        const { tokenHash: _t, ...publicFields } = invitation;
+        return clone(publicFields);
+      },
+      async findByTokenHash(tokenHash) {
+        const found = store().invitations.find((i) => i.tokenHash === tokenHash);
+        if (!found) return null;
+        const { tokenHash: _t, ...publicFields } = found;
+        return clone(publicFields);
+      },
+      async accept(id, passwordHash) {
+        const s = store();
+        const invitation = s.invitations.find((i) => i.id === id);
+        const member = invitation && s.members.find((m) => m.id === invitation.userId);
+        if (!invitation || invitation.acceptedAt || !member) return null;
+        invitation.acceptedAt = new Date().toISOString();
+        member.status = 'active';
+        member.lastActiveAt = invitation.acceptedAt;
+        s.passwords.set(member.id, passwordHash);
+        return clone(member);
       },
     },
 
