@@ -13,6 +13,16 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
+# One-off job image: applies Drizzle migrations and seeds demo data.
+# Has its own Linux node_modules (never mount the host's into a container).
+FROM node:24-alpine AS migrator
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY package.json drizzle.config.ts tsconfig.json ./
+COPY drizzle ./drizzle
+COPY src ./src
+CMD ["sh", "-c", "npx drizzle-kit migrate && npx tsx src/server/db/seed.ts"]
+
 FROM node:24-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production \

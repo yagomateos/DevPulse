@@ -1,6 +1,8 @@
 # Full stack: the app backed by PostgreSQL.
-#   docker compose up --build
-#   docker compose run --rm migrate   # create tables + seed demo data
+#   export AUTH_SECRET=$(openssl rand -hex 32)
+#   docker compose up -d db
+#   docker compose run --rm migrate      # apply migrations + seed demo data
+#   docker compose up -d --build app     # http://localhost:3000
 services:
   db:
     image: postgres:17-alpine
@@ -16,24 +18,26 @@ services:
       retries: 10
 
   migrate:
-    image: node:24-alpine
-    working_dir: /app
-    volumes: ['./:/app']
+    build:
+      context: .
+      target: migrator
     environment:
       DATABASE_URL: postgres://aiw:aiw@db:5432/aiw
-    command: sh -c "npx drizzle-kit push --force && npx tsx src/server/db/seed.ts"
     depends_on:
       db: { condition: service_healthy }
     profiles: [tools]
 
   app:
-    build: .
-    ports: ['3000:3000']
+    build:
+      context: .
+      target: runner
+    ports: ['${APP_PORT:-3000}:3000']
     environment:
       DATA_SOURCE: postgres
       DATABASE_URL: postgres://aiw:aiw@db:5432/aiw
-      AUTH_SECRET: ${AUTH_SECRET:-local-docker-secret-change-me}
-      INSECURE_COOKIES: 'true'
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET (e.g. export AUTH_SECRET=$(openssl rand -hex 32))}
+      INSECURE_COOKIES: 'true' # plain HTTP on localhost
+      DEMO_MODE: ${DEMO_MODE:-true}
       AI_API_KEY: ${AI_API_KEY:-}
       AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
       AI_MODEL: ${AI_MODEL:-gpt-4.1-mini}

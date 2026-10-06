@@ -45,6 +45,10 @@ export const DECISIONS: { question: string; answer: string }[] = [
     answer: 'A typed ApiError carries status and field issues. Queries never retry 4xx errors; 401 triggers a global session-expired flow that returns the user to where they were. Every data surface goes through QueryState / ErrorState / EmptyState / LoadingSkeleton, route segments have error.tsx boundaries, and Settings → General can inject latency and failures into the mock API to demonstrate it all.',
   },
   {
+    question: 'How is the app secured?',
+    answer: 'Signed http-only session cookies, a single permission matrix enforced in every route handler and server action (the UI only hides what the role cannot do), Zod validation on all input, same-origin checks on mutations, login rate limiting and a production CSP. Portfolio conveniences — picking your role, switching roles, simulating session expiry — live behind DEMO_MODE and disappear with DEMO_MODE=false.',
+  },
+  {
     question: 'How is performance managed?',
     answer: 'Server rendering + streaming for first paint; dynamic imports for Recharts, the markdown renderer and dialog forms; optimizePackageImports for icons; memoised table columns and chat messages (only the streaming message re-renders per token); useDeferredValue for log filtering; debounced, abortable search; URL updates via the History API to avoid server round trips; and query caching with sensible stale times.',
   },

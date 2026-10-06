@@ -4,7 +4,7 @@ A SaaS workspace for software teams: projects, pull requests, deployments and in
 
 The project is a **frontend engineering showcase**. Most of the work is in the React and Next.js architecture: composition, state ownership, data fetching, forms, a reusable data table, accessibility, performance and tests. The backend stays deliberately small. Its only job is to support the UI behind a typed seam that can be swapped out.
 
-> **Demo login:** `demo@example.com` / `demo123`. You choose a role (Admin, Manager or Developer) at sign-in and can switch it later from the user menu to explore RBAC.
+> **Demo login:** `demo@example.com` / `demo123`. In demo mode (the default) you choose a role (Admin, Manager or Developer) at sign-in and can switch it later from the user menu to explore RBAC. With `DEMO_MODE=false` the role always comes from the member record — see [Security model](#security-model).
 > The app runs **fully offline**: in-memory data and a deterministic demo AI model. Add an `AI_API_KEY` to use a real LLM.
 
 ---
@@ -19,6 +19,7 @@ The project is a **frontend engineering showcase**. Most of the work is in the R
 - [Next.js patterns](#nextjs-patterns)
 - [State management](#state-management)
 - [AI architecture](#ai-architecture)
+- [Security model](#security-model)
 - [Accessibility & performance](#accessibility--performance)
 - [Testing](#testing)
 - [Running locally](#running-locally)
@@ -171,6 +172,15 @@ URL updates go through the History API, which the App Router keeps in sync with 
 - **Contextual panel.** Pages register what the user is looking at in a context *stack*: project layout → PR page. The global **Ask AI** panel always answers about the current entity.
 - **Demo model.** With no API key, a deterministic rule-based analyser reads the real diff, checks, logs and timeline. It returns output that satisfies the same schemas. This keeps the app useful offline and the tests deterministic.
 
+## Security model
+
+- **Sessions.** Stateless, HMAC-SHA256-signed, `httpOnly` + `SameSite=Lax` cookies with an 8 h expiry. `AUTH_SECRET` is mandatory for production builds (there is no built-in fallback).
+- **Authorisation.** `lib/permissions.ts` is the single permission matrix. `<PermissionGate>` hides UI; every route handler and server action re-checks with `requirePermission()` (Playwright verifies the 403).
+- **Demo mode (`DEMO_MODE`, on by default).** Unlocks portfolio conveniences: choosing your role at sign-in, switching roles, simulating session expiry and per-request network switches (`x-mock-network`, `?__fail=1`). `DEMO_MODE=false` disables all of them and takes the role from the member record.
+- **Abuse and CSRF.** Failed sign-ins are rate-limited per email + IP (5 per minute, in-memory per instance). State-changing API requests must come from the app's own origin, on top of `SameSite` cookies.
+- **Headers.** Production responses send a Content-Security-Policy (`'self'` only; `'unsafe-inline'` for scripts because Next streams its RSC payload inline), `X-Frame-Options`, `nosniff`, `Referrer-Policy` and `Permissions-Policy`.
+- **Known limits.** Tokens can't be revoked server-side (sign-out clears the cookie), the rate limiter is per instance, and demo passwords live in memory.
+
 ## Accessibility & performance
 
 **Accessibility**
@@ -180,7 +190,7 @@ URL updates go through the History API, which the App Router keeps in sync with 
   - the palette (`⌘K`, `/`) and `g` + key navigation;
   - table rows and timeline filters;
   - `aria-pressed` toggles on interactive controls.
-- Visible focus rings, contrast-checked tokens in both themes, and `prefers-reduced-motion` support.
+- Visible focus rings, colour tokens designed for AA contrast in both themes (not yet audited with an automated tool) and `prefers-reduced-motion` support.
 
 **Performance**
 - Server rendering and streaming.
@@ -193,12 +203,12 @@ URL updates go through the History API, which the App Router keeps in sync with 
 ## Testing
 
 ```bash
-npm test              # Vitest: unit + component + SQL integration (68 tests)
+npm test              # Vitest: unit + component + SQL integration (78 tests)
 npm run test:coverage
-npm run test:e2e      # Playwright: desktop + mobile journeys (12 tests)
+npm run test:e2e      # Playwright: desktop + mobile journeys (14 tests)
 ```
 
-- **Unit tests** cover permissions, schemas, formatting, the session token (including tampering and expiry), the memory repository and the demo AI model. A separate test parses NDJSON split across network chunks.
+- **Unit tests** cover permissions, schemas, time-zone formatting, the session token (including tampering and expiry), login rate limiting, notification preferences, mock integrations, the memory repository and the demo AI model. A separate test parses NDJSON split across network chunks.
 - **Component tests** (RTL + user-event) cover behaviour, not just rendering:
   - DataTable: sorting, debounced search, facets, column visibility, keyboard navigation, selection, loading and error states;
   - PR detail: AI analysis, jumping from a finding to the diff, error and retry;
@@ -207,9 +217,10 @@ npm run test:e2e      # Playwright: desktop + mobile journeys (12 tests)
   - the create-incident form: client and server validation;
   - the projects grid/list toggle;
   - `PermissionGate`, `useChat` (streaming and retry) and `useMediaQuery`.
-- **SQL integration test.** It applies the generated Drizzle migration to **PGlite**, a real Postgres engine running as WASM, seeds it and exercises the Postgres repository.
+- **SQL integration test.** It applies the generated Drizzle migration to **PGlite**, a real Postgres engine running as WASM, seeds it and checks that the Postgres repository behaves like the in-memory one.
 - **Playwright journeys:**
-  - login and redirect-back, invalid credentials, unauthorised API access, logout;
+  - login and redirect-back, invalid credentials, login rate limiting, unauthorised API access, logout;
+  - real HTTP 404 responses for missing records;
   - RBAC, checked in both the UI and the API;
   - dashboard filters and drill-down;
   - the full demo flow;
@@ -217,6 +228,8 @@ npm run test:e2e      # Playwright: desktop + mobile journeys (12 tests)
   - AI incident investigation;
   - global search with the keyboard;
   - mobile drawer and card layouts.
+
+The same 14 journeys pass against `next dev`, against the standalone production build (`npm run build && npm start`, as CI runs them) and against the Docker image backed by PostgreSQL.
 
 ## Running locally
 
@@ -239,15 +252,17 @@ npx playwright install chromium && npm run test:e2e
 ```bash
 docker compose up -d db
 cp .env.example .env.local    # set DATA_SOURCE=postgres
-npm run db:push && npm run db:seed
+npm run db:migrate && npm run db:seed
 npm run dev
 ```
 
 Or run the whole stack in containers:
 
 ```bash
-docker compose up --build -d
-docker compose run --rm migrate   # create tables and seed demo data
+export AUTH_SECRET=$(openssl rand -hex 32)
+docker compose up -d db
+docker compose run --rm migrate    # apply migrations + seed (dedicated migrator image)
+docker compose up -d --build app   # http://localhost:3000 (APP_PORT to change it)
 ```
 
 ## Environment variables
@@ -256,7 +271,8 @@ All variables are optional. See [`.env.example`](.env.example).
 
 | Variable | Purpose |
 | --- | --- |
-| `AUTH_SECRET` | HMAC key for session cookies. **Required in production** unless `DEMO_MODE=true`. |
+| `AUTH_SECRET` | HMAC key for session cookies. **Required for production builds.** |
+| `DEMO_MODE` | `true` (default) or `false`. See [Security model](#security-model). |
 | `DATA_SOURCE` | `memory` (default) or `postgres` |
 | `DATABASE_URL` | Postgres connection string |
 | `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` | Any OpenAI-compatible endpoint. Without a key, the demo model is used. |
@@ -265,8 +281,8 @@ All variables are optional. See [`.env.example`](.env.example).
 
 ## Deployment
 
-- **Vercel / Node hosting.** `npm run build && npm start`. Set `AUTH_SECRET` and, optionally, the AI and database variables.
-- **Docker.** A multi-stage `Dockerfile` builds Next.js `standalone` output into a small, non-root image with a healthcheck.
-- **CI.** `.github/workflows/ci.yml` runs lint, typecheck and unit tests with coverage. It then runs the production build plus Playwright, and builds the Docker image.
+- **Node hosting.** `npm run build && npm start`. The build emits Next.js `standalone` output and copies its static assets; `npm start` runs `node .next/standalone/server.js` (honours `PORT`/`HOSTNAME`). Set `AUTH_SECRET` and, optionally, the AI and database variables.
+- **Docker.** A multi-stage `Dockerfile` produces a ~310 MB non-root `runner` image with a healthcheck, plus a `migrator` image that applies Drizzle migrations and seeds data.
+- **CI.** `.github/workflows/ci.yml` runs lint, typecheck and unit tests with coverage; then the production build plus Playwright against both the in-memory store and a PostgreSQL service; and builds both Docker images. The workflow has not run on GitHub yet — it will on the first push.
 
 The in-memory store resets when the server restarts. Use `DATA_SOURCE=postgres` for persistent data.

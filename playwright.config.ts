@@ -21,11 +21,19 @@ export default defineConfig({
     { name: 'mobile', use: { ...devices['Pixel 7'] }, testMatch: /mobile\.spec\.ts/ },
   ],
   webServer: {
-    // CI runs the production build; locally an existing dev server is reused.
-    command: isCI ? `npm run start -- -p ${PORT}` : `npm run dev -- -p ${PORT}`,
+    // CI runs the production (standalone) build; locally an existing dev server is reused.
+    command: isCI ? 'npm run start' : `npm run dev -- -p ${PORT}`,
     url: `http://localhost:${PORT}/api/health`,
     reuseExistingServer: !isCI,
     timeout: 120_000,
-    env: { MOCK_NETWORK: 'off', INSECURE_COOKIES: 'true', DEMO_MODE: 'true' },
+    env: {
+      PORT: String(PORT),
+      MOCK_NETWORK: 'off',
+      INSECURE_COOKIES: 'true',
+      DEMO_MODE: 'true',
+      AUTH_SECRET: process.env.AUTH_SECRET ?? 'e2e-only-secret',
+      DATA_SOURCE: process.env.DATA_SOURCE ?? 'memory',
+      ...(process.env.DATABASE_URL ? { DATABASE_URL: process.env.DATABASE_URL } : {}),
+    },
   },
 });
