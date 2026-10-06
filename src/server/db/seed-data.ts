@@ -1,3 +1,4 @@
+import { inArray, notInArray } from 'drizzle-orm';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import type { Dataset } from '../data/dataset';
 import { DEFAULT_SETTINGS } from '../repositories/defaults';
@@ -27,5 +28,42 @@ export async function seedDatabase(db: AnyPgDatabase, data: Dataset) {
     );
     await tx.insert(schema.notifications).values(data.notifications.map((n) => ({ ...n, severity: n.severity ?? null, read: n.read ? 1 : 0 })));
     await tx.insert(schema.workspaceSettings).values({ id: 'default', value: DEFAULT_SETTINGS });
+  });
+}
+
+/**
+ * Daily demo refresh that keeps user-created projects: every project that is
+ * not part of the demo dataset survives with its pull requests, deployments,
+ * incidents, members and AI analyses; everything else is reseeded. Runs in one
+ * transaction (the reseed nests as a savepoint), so readers never see a gap.
+ */
+export async function refreshDemoData(db: AnyPgDatabase, data: Dataset) {
+  const demoIds = data.projects.map((p) => p.id);
+  await db.transaction(async (tx) => {
+    const keep = await tx.select().from(schema.projects).where(notInArray(schema.projects.id, demoIds));
+    const keepIds = keep.map((p) => p.id);
+    const [prs, deploys, incs, members, analyses] = keepIds.length
+      ? await Promise.all([
+          tx.select().from(schema.pullRequests).where(inArray(schema.pullRequests.projectId, keepIds)),
+          tx.select().from(schema.deployments).where(inArray(schema.deployments.projectId, keepIds)),
+          tx.select().from(schema.incidents).where(inArray(schema.incidents.projectId, keepIds)),
+          tx.select().from(schema.teamMembers).where(inArray(schema.teamMembers.projectId, keepIds)),
+          tx.select().from(schema.aiAnalyses),
+        ])
+      : [[], [], [], [], []];
+
+    await seedDatabase(tx, data);
+    if (!keepIds.length) return;
+
+    const users = new Set(data.members.map((m) => m.id));
+    const targets = new Set([...prs, ...deploys, ...incs].map((r) => r.id));
+    await tx.insert(schema.projects).values(keep.map((p) => ({ ...p, ownerId: p.ownerId && users.has(p.ownerId) ? p.ownerId : null })));
+    if (prs.length) await tx.insert(schema.pullRequests).values(prs);
+    if (deploys.length) await tx.insert(schema.deployments).values(deploys);
+    if (incs.length) await tx.insert(schema.incidents).values(incs);
+    const keptMembers = members.filter((m) => users.has(m.userId));
+    if (keptMembers.length) await tx.insert(schema.teamMembers).values(keptMembers);
+    const keptAnalyses = analyses.filter((a) => targets.has(a.targetId));
+    if (keptAnalyses.length) await tx.insert(schema.aiAnalyses).values(keptAnalyses);
   });
 }

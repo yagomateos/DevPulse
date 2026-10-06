@@ -50,6 +50,7 @@ The project is a **frontend engineering showcase**. Most of the work is in the R
 - [Next.js patterns](#nextjs-patterns)
 - [State management](#state-management)
 - [AI architecture](#ai-architecture)
+- [GitHub integration](#github-integration)
 - [Security model](#security-model)
 - [Accessibility & performance](#accessibility--performance)
 - [Testing](#testing)
@@ -176,7 +177,7 @@ src/
   `AppShell` itself is a Server Component that wraps small client islands.
 - **Client Components only for interaction:** tables, forms, charts, the palette and chat.
 - **Special files.** `loading.tsx`, `error.tsx` and `not-found.tsx` exist at the workspace, project and detail levels. `global-error.tsx` sits at the root.
-- **Route Handlers.** There are 26 typed endpoints. Each validates input with Zod and maps errors to a uniform `{ error: { message, status, issues } }`.
+- **Route Handlers.** There are 29 typed endpoints. Each validates input with Zod and maps errors to a uniform `{ error: { message, status, issues } }`.
 - **Server Actions** handle login, logout, role switching and simulated session expiry.
 - **`proxy.ts`** (Next 16's middleware) does an optimistic signed-cookie check and redirects to `/login?next=…` with a `reason=expired` flag. Authoritative checks happen again in layouts and handlers.
 - **Metadata.** Each route has a title template, plus `generateMetadata` on dynamic routes.
@@ -250,7 +251,7 @@ Lighthouse's simulated mode reports LCP ≈ 3.3–3.9 s on workspace pages; with
 ## Testing
 
 ```bash
-npm test              # Vitest: unit + component + SQL integration (115 tests, coverage ratchet)
+npm test              # Vitest: unit + component + SQL integration (133 tests, coverage ratchet)
 npm run test:coverage
 npm run test:e2e      # Playwright: journeys + axe audit, desktop & mobile (17 tests)
 ```
@@ -325,13 +326,16 @@ All variables are optional. See [`.env.example`](.env.example).
 | `DEMO_MODE` | `true` (default) or `false`. See [Security model](#security-model). |
 | `DATA_SOURCE` | `memory` (default) or `postgres` |
 | `DATABASE_URL` | Postgres connection string |
+| `GITHUB_TOKEN` | Fine-grained token (Pull requests + Checks, read-only) for the GitHub sync. Optional for public repos. |
+| `GITHUB_WEBHOOK_SECRET` | Shared secret for verifying GitHub webhook signatures. Without it the webhook returns 503. |
+| `CRON_SECRET` | Bearer token Vercel Cron sends to `/api/cron/github-sync` |
 | `AI_API_KEY` / `AI_BASE_URL` / `AI_MODEL` | Any OpenAI-compatible endpoint. Without a key, the demo model is used. |
 | `MOCK_NETWORK=off` | Disables simulated latency and failures (used in tests) |
 | `INSECURE_COOKIES=true` | Allows the session cookie over plain HTTP (local Docker) |
 
 ## Deployment
 
-- **Vercel (live demo).** Deployed to `fra1` with **Neon Postgres** from the Vercel Marketplace (`DATA_SOURCE=postgres`), so all serverless functions share state. A daily **Vercel Cron** calls `/api/test/reset` (authorised with `CRON_SECRET`) to restore the demo dataset. Required env vars: `AUTH_SECRET`, `DATA_SOURCE`, `DATABASE_URL` (provisioned by the integration), `CRON_SECRET`.
+- **Vercel (live demo).** Deployed to `fra1` with **Neon Postgres** from the Vercel Marketplace (`DATA_SOURCE=postgres`), so all serverless functions share state. A daily **Vercel Cron** calls `/api/test/reset` (authorised with `CRON_SECRET`) to restore the demo projects. Projects created by users (such as real repositories synced from GitHub) and their data are kept; test runs still use a full reset. A second cron reconciles the GitHub sync. Required env vars: `AUTH_SECRET`, `DATA_SOURCE`, `DATABASE_URL` (provisioned by the integration), `CRON_SECRET`, plus `GITHUB_WEBHOOK_SECRET` / `GITHUB_TOKEN` for the GitHub sync.
 - **Node hosting.** `npm run build && npm start`. The build emits Next.js `standalone` output and copies its static assets; `npm start` runs `node .next/standalone/server.js` (honours `PORT`/`HOSTNAME`). Set `AUTH_SECRET` and, optionally, the AI and database variables.
 - **Docker.** A multi-stage `Dockerfile` produces a ~310 MB non-root `runner` image with a healthcheck, plus a `migrator` image that applies Drizzle migrations and seeds data.
 - **CI.** `.github/workflows/ci.yml` runs lint, typecheck and unit tests with coverage; then the production build plus Playwright against both the in-memory store and a PostgreSQL service; and builds both Docker images. All jobs pass on GitHub Actions.

@@ -17,12 +17,18 @@ export function isResetAllowed(token: string | null, authorization: string | nul
   return !!cronSecret && authorization === `Bearer ${cronSecret}`;
 }
 
-export async function resetAllData() {
+/**
+ * `keepUserProjects` (the daily cron) only refreshes the demo projects and keeps
+ * the ones people created, e.g. real repositories synced from GitHub. Test runs
+ * use the full reset so every run starts from the exact same dataset. The
+ * in-memory store is ephemeral anyway and always resets fully.
+ */
+export async function resetAllData({ keepUserProjects = false } = {}) {
   resetLoginRateLimit();
   resetPasswords();
   if (process.env.DATA_SOURCE === 'postgres') {
-    const [{ getDb }, { seedDatabase }] = await Promise.all([import('./db/client'), import('./db/seed-data')]);
-    await seedDatabase(getDb(), createDataset());
+    const [{ getDb }, { seedDatabase, refreshDemoData }] = await Promise.all([import('./db/client'), import('./db/seed-data')]);
+    await (keepUserProjects ? refreshDemoData : seedDatabase)(getDb(), createDataset());
   } else {
     resetMemoryStore();
   }

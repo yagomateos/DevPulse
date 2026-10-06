@@ -97,6 +97,10 @@ export function createPostgresRepository(db: Database = getDb()): Repository {
         const [row] = await db.select({ payload: t.pullRequests.payload }).from(t.pullRequests).where(and(eq(t.pullRequests.projectId, projectId), eq(t.pullRequests.number, number)));
         return row?.payload ?? null;
       },
+      async upsert(pr) {
+        const columns = { projectId: pr.projectId, number: pr.number, title: pr.title, author: pr.author, status: pr.status, riskScore: pr.riskScore, riskLevel: pr.riskLevel, tests: pr.tests, updatedAt: pr.updatedAt, payload: pr };
+        await db.insert(t.pullRequests).values({ id: pr.id, ...columns }).onConflictDoUpdate({ target: t.pullRequests.id, set: columns });
+      },
     },
 
     deployments: {

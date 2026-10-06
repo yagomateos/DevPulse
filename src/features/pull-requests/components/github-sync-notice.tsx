@@ -2,7 +2,7 @@ import { Unplug } from 'lucide-react';
 import Link from 'next/link';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-/** Shown when the (mock) GitHub integration is disconnected in Settings → Integrations. */
+/** Shown when the GitHub integration is disconnected in Settings → Integrations (webhooks and sync are paused). */
 export function GithubSyncNotice() {
   return (
     <Alert>

@@ -7,6 +7,8 @@ import type { Paginated, PullRequest, PullRequestSummary } from '@/types/domain'
 export const pullRequestsService = {
   list: (query: Partial<PullRequestQuery>) => apiFetch<Paginated<PullRequestSummary>>('/api/pull-requests', { query }),
   get: (projectId: string, number: number) => apiFetch<PullRequest>(`/api/projects/${projectId}/pull-requests/${number}`),
+  syncFromGitHub: (projectId: string) =>
+    apiFetch<{ synced: number; skipped: number; failed: number; error?: string }>(`/api/projects/${projectId}/sync`, { method: 'POST' }),
 };
 
 export const pullRequestQueries = {
