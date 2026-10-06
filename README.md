@@ -1,5 +1,4 @@
-# AI Engineering Workspace
-
+# DevPulse
 [![CI](https://github.com/yagomateos/DevPulse/actions/workflows/ci.yml/badge.svg)](https://github.com/yagomateos/DevPulse/actions/workflows/ci.yml)
 
 A SaaS workspace for software teams: projects, pull requests, deployments and incidents, with AI analysis built into each of those workflows.
