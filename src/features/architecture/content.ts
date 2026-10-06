@@ -4,7 +4,7 @@ export const STACK = [
   { area: 'UI', items: ['Tailwind CSS with design tokens', 'shadcn/ui on Radix primitives', 'cmdk, vaul, Recharts, Lucide'] },
   { area: 'AI', items: ['OpenAI-compatible Chat Completions', 'Streaming (NDJSON events)', 'Structured outputs (JSON Schema from Zod)', 'Tool calling over the repository'] },
   { area: 'Testing', items: ['Vitest', 'React Testing Library + user-event', 'Playwright end-to-end'] },
-  { area: 'Platform', items: ['Route Handlers + Server Actions', 'PostgreSQL + Drizzle ORM', 'Docker, GitHub Actions'] },
+  { area: 'Platform', items: ['Route Handlers + Server Actions', 'PostgreSQL + Drizzle ORM', 'GitHub webhooks + Vercel Cron', 'Docker, GitHub Actions'] },
 ];
 
 export const DECISIONS: { question: string; answer: string }[] = [
@@ -39,6 +39,10 @@ export const DECISIONS: { question: string; answer: string }[] = [
   {
     question: 'How does AI integrate with the frontend?',
     answer: 'Analyses are structured: the server requests JSON-Schema-constrained output, validates it with Zod and stores it; React components render risk gauges, grouped findings, evidence and recommendations — and findings with file/line appear inline in the diff. The assistant streams NDJSON events (status, sources, text, done) consumed by a useChat hook with abort and retry. Pages register their context into a stack, so the global “Ask AI” panel always knows what the user is looking at.',
+  },
+  {
+    question: 'How do real integrations plug in?',
+    answer: 'Through the same repository seam the mocks use. GitHub is live: a signed webhook (HMAC-SHA256, constant-time check) acknowledges within GitHub’s 10 s budget and syncs after the response, a daily cron reconciles missed deliveries, and every write is an idempotent upsert, so retries are harmless. A pure mapper turns GitHub payloads into the same PullRequest type, so the table, diff viewer and AI review needed no changes. Slack and PagerDuty stay mock connectors because they need customer credentials.',
   },
   {
     question: 'How are errors handled?',

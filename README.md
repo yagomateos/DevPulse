@@ -17,7 +17,7 @@ The project is a **frontend engineering showcase**. Most of the work is in the R
 - **A reusable `<DataTable />`:** server or client mode, URL-synced filters/sorting/pagination, column visibility, selection, keyboard navigation and mobile cards. Used on five screens.
 - **AI as product features, not a chatbot:** structured PR / deployment / incident analyses rendered as components (risk gauge, grouped findings *inline in the diff*, evidence, recommendations), plus a context-aware assistant that streams and cites its sources.
 - **Verified quality:**
-  - 115 Vitest tests and 17 Playwright tests, including an axe WCAG 2.1 AA audit in both themes;
+  - 134 Vitest tests and 17 Playwright tests, including an axe WCAG 2.1 AA audit in both themes;
   - Lighthouse accessibility 100 and CLS 0;
   - CI on GitHub runs everything against both the in-memory store and PostgreSQL.
 
@@ -251,7 +251,7 @@ Lighthouse's simulated mode reports LCP ≈ 3.3–3.9 s on workspace pages; with
 ## Testing
 
 ```bash
-npm test              # Vitest: unit + component + SQL integration (133 tests, coverage ratchet)
+npm test              # Vitest: unit + component + SQL integration (134 tests, coverage ratchet)
 npm run test:coverage
 npm run test:e2e      # Playwright: journeys + axe audit, desktop & mobile (17 tests)
 ```
