@@ -1,10 +1,10 @@
-# AI Engineering Workspace
+# DevPulse
 
 [![CI](https://github.com/yagomateos/DevPulse/actions/workflows/ci.yml/badge.svg)](https://github.com/yagomateos/DevPulse/actions/workflows/ci.yml)
 
-**Live demo: [ai-engineering-workspace.vercel.app](https://ai-engineering-workspace.vercel.app)** · sign in with `demo@example.com` / `demo123`.
+**Live demo: [devpulse-hq.vercel.app](https://devpulse-hq.vercel.app)** · sign in with `demo@example.com` / `demo123`.
 
-A SaaS workspace for software teams: projects, pull requests, deployments and incidents, with AI analysis built into each of those workflows.
+DevPulse is an AI engineering workspace for software teams: projects, pull requests, deployments and incidents, with AI analysis built into each of those workflows.
 
 The project is a **frontend engineering showcase**. Most of the work is in the React and Next.js architecture: composition, state ownership, data fetching, forms, a reusable data table, accessibility, performance and tests. The backend stays deliberately small. Its only job is to support the UI behind a typed seam that can be swapped out.
 

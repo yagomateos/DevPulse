@@ -4,7 +4,7 @@ import { PageHeader } from '@/components/shared/page-header';
 import { ArchitectureDiagram } from '@/features/architecture/architecture-diagram';
 import { DECISIONS, PORTFOLIO, STACK } from '@/features/architecture/content';
 
-export const metadata: Metadata = { title: 'Architecture', description: 'How AI Engineering Workspace is built.' };
+export const metadata: Metadata = { title: 'Architecture', description: 'How DevPulse is built.' };
 
 /** Fully static Server Component: zero client JavaScript for this page's content. */
 export default function ArchitecturePage() {
