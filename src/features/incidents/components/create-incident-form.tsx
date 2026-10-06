@@ -7,11 +7,13 @@ import { useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Combobox } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { FormFooter } from '@/components/shared/form-footer';
+import { UserAvatar } from '@/components/shared/user-avatar';
 import { SEVERITY } from '@/components/status/status-badges';
 import { useProjects } from '@/features/projects/hooks/use-projects';
 import { useTeam } from '@/features/team/hooks/use-team';
@@ -173,21 +175,16 @@ export function CreateIncidentForm({ defaultProjectId, onDone }: { defaultProjec
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Incident commander</FormLabel>
-                <Select value={field.value ?? NONE} onValueChange={(v) => field.onChange(v === NONE ? null : v)}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={NONE}>Unassigned</SelectItem>
-                    {team.data?.filter((m) => m.status === 'active').map((m) => (
-                      <SelectItem key={m.id} value={m.name}>
-                        {m.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormControl>
+                  <Combobox
+                    options={(team.data ?? []).filter((m) => m.status === 'active').map((m) => ({ value: m.name, label: m.name, description: m.title, keywords: [m.email], icon: <UserAvatar name={m.name} size="xs" /> }))}
+                    value={field.value}
+                    onChange={field.onChange}
+                    placeholder="Unassigned"
+                    searchPlaceholder="Search people…"
+                    clearLabel="Unassigned"
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

@@ -25,7 +25,7 @@ export function DeploymentTimeline({ stages }: { stages: DeploymentStage[] }) {
       </div>
       <ol className="grid gap-2 sm:grid-cols-5" aria-label="Pipeline stages">
         {stages.map((s, i) => (
-          <li key={s.id} className={cn('flex items-center gap-2.5 rounded-md border p-2.5 sm:flex-col sm:items-start', s.status === 'failed' && 'border-destructive/40 bg-destructive/5', (s.status === 'skipped' || s.status === 'pending') && 'opacity-60')}>
+          <li key={s.id} className={cn('flex items-center gap-2.5 rounded-md border p-2.5 sm:flex-col sm:items-start', s.status === 'failed' && 'border-destructive/40 bg-destructive/5', (s.status === 'skipped' || s.status === 'pending') && 'border-dashed text-muted-foreground')}>
             <span className="flex items-center gap-2">
               <CheckStatusIcon status={s.status} />
               <span className="text-[13px] font-medium">

@@ -14,7 +14,7 @@ export function SidebarProjects() {
   const { data, isPending } = useQuery({ ...projectQueries.list(), select: (projects) => projects.filter((p) => p.status === 'active').slice(0, 6) });
   return (
     <div>
-      <p className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/80">Projects</p>
+      <p className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Projects</p>
       {isPending ? (
         <div className="space-y-1.5 px-2 py-1">
           {Array.from({ length: 4 }).map((_, i) => (

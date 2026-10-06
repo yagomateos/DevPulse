@@ -36,7 +36,7 @@ function ProgressSteps({ steps }: { steps: string[] }) {
     <div role="status" aria-live="polite" className="space-y-4 p-4">
       <ol className="space-y-2">
         {steps.map((step, i) => (
-          <li key={step} className={cn('flex items-center gap-2 text-xs transition-opacity', i > active && 'opacity-40')}>
+          <li key={step} className={cn('flex items-center gap-2 text-xs transition-opacity', i > active && 'text-muted-foreground')}>
             {i < active ? <Check className="size-3.5 text-success" aria-hidden /> : i === active ? <Loader2 className="size-3.5 animate-spin text-primary" aria-hidden /> : <span className="size-3.5 rounded-full border" aria-hidden />}
             {step}
           </li>

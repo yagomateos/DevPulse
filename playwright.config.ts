@@ -5,6 +5,7 @@ const isCI = !!process.env.CI;
 
 export default defineConfig({
   testDir: './tests/e2e',
+  globalSetup: './tests/e2e/global-setup.ts',
   fullyParallel: false, // the demo store is shared, keep journeys deterministic
   workers: 1,
   retries: isCI ? 1 : 0,
@@ -33,6 +34,7 @@ export default defineConfig({
       DEMO_MODE: 'true',
       AUTH_SECRET: process.env.AUTH_SECRET ?? 'e2e-only-secret',
       DATA_SOURCE: process.env.DATA_SOURCE ?? 'memory',
+      TEST_RESET_TOKEN: process.env.TEST_RESET_TOKEN ?? 'e2e-reset-token',
       ...(process.env.DATABASE_URL ? { DATABASE_URL: process.env.DATABASE_URL } : {}),
     },
   },

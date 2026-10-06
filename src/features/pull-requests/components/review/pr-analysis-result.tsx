@@ -22,7 +22,7 @@ export function PRAnalysisResult({ result, onLocate }: { result: PRAnalysis; onL
             const count = result.findings.filter((f) => f.category === c).length;
             const { icon: Icon, tone } = CATEGORY_META[c];
             return (
-              <li key={c} className={cn('flex items-center gap-1.5 rounded border px-1.5 py-1', count === 0 && 'opacity-40')}>
+              <li key={c} className={cn('flex items-center gap-1.5 rounded border px-1.5 py-1', count === 0 && 'border-dashed text-muted-foreground')}>
                 <Icon className={cn('size-3', tone)} aria-hidden />
                 <span className="truncate">{c}</span>
                 <span className="ml-auto font-mono">{count}</span>

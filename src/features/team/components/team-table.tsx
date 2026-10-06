@@ -91,7 +91,7 @@ export function TeamTable() {
           <span className="flex items-center gap-3">
             <span className="relative">
               <UserAvatar name={row.original.name} size="md" />
-              <span className={cn('absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-background', PRESENCE_TONE[row.original.presence])} aria-label={row.original.presence} />
+              <span className={cn('absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-background', PRESENCE_TONE[row.original.presence])} role="img" aria-label={row.original.presence} />
             </span>
             <span>
               <span className="block font-medium">{row.original.name}</span>

@@ -5,16 +5,19 @@ import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Combobox } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { usePermissions } from '@/features/auth/hooks/use-permissions';
 import { applyServerErrors } from '@/lib/forms';
+import { supportedTimeZones, utcOffsetLabel } from '@/lib/timezones';
 import { generalSettingsSchema, type GeneralSettings } from '@/schemas/settings';
 import { useUpdateSettings } from '../hooks/use-settings';
 import { SettingsFormActions } from './settings-form-actions';
 import { SettingsSection } from './settings-section';
 
-const TIMEZONES = ['UTC', 'Europe/Madrid', 'Europe/London', 'America/New_York', 'America/Los_Angeles', 'Asia/Tokyo'];
+
+const timeZoneOptions = supportedTimeZones().map((zone) => ({ value: zone, label: zone.replace(/_/g, ' '), description: utcOffsetLabel(zone), keywords: [zone.split('/').pop() ?? ''] }));
 
 export function GeneralSettingsForm({ defaults }: { defaults: GeneralSettings }) {
   const { can } = usePermissions();
@@ -57,23 +60,21 @@ export function GeneralSettingsForm({ defaults }: { defaults: GeneralSettings })
               <FormField
                 control={form.control}
                 name="timezone"
-                render={({ field }) => (
+                render={({ field, fieldState }) => (
                   <FormItem>
-                    <FormLabel>Timezone</FormLabel>
-                    <Select value={field.value} onValueChange={field.onChange} disabled={readOnly}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {TIMEZONES.map((tz) => (
-                          <SelectItem key={tz} value={tz}>
-                            {tz}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <FormLabel>Time zone</FormLabel>
+                    <FormControl>
+                      <Combobox
+                        options={timeZoneOptions}
+                        value={field.value}
+                        onChange={(v) => field.onChange(v ?? 'UTC')}
+                        searchPlaceholder="Search time zones…"
+                        disabled={readOnly}
+                        aria-invalid={!!fieldState.error}
+                      />
+                    </FormControl>
+                    <FormDescription>Used for every date and time in the workspace.</FormDescription>
+                    <FormMessage />
                   </FormItem>
                 )}
               />

@@ -12,8 +12,7 @@ test('end-to-end demo flow', async ({ authed: page }) => {
   await page.getByRole('link', { name: /fix authentication bypass/i }).click();
   await expect(page.getByRole('heading', { name: /fix authentication bypass/i })).toBeVisible();
 
-  // Accept a previous run's stored analysis on a reused dev server.
-  await page.getByRole('button', { name: /analyze with ai|re-run analysis/i }).click();
+  await page.getByRole('button', { name: 'Analyze with AI' }).click();
   await expect(page.getByRole('img', { name: /risk score \d+ of 100/i })).toBeVisible({ timeout: 20_000 });
   const findings = page.getByRole('region', { name: 'Findings' });
   await expect(findings.getByRole('heading', { name: 'Global lock on the request hot path' })).toBeVisible();
@@ -24,7 +23,7 @@ test('end-to-end demo flow', async ({ authed: page }) => {
   await page.getByRole('tab', { name: 'Performance' }).click();
   await expect(page.getByRole('table', { name: /performance before and after/i })).toBeVisible();
 
-  await page.getByRole('button', { name: /analyze deployment|re-run analysis/i }).click();
+  await page.getByRole('button', { name: 'Analyze Deployment' }).click();
   await expect(page.getByText('Possible cause')).toBeVisible({ timeout: 20_000 });
 
   await page.getByRole('button', { name: 'Ask AI' }).first().click();

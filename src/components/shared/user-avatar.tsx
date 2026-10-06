@@ -19,8 +19,8 @@ export function UserAvatar({ name, size = 'sm', className, labelled = false }: U
       aria-label={labelled ? name : undefined}
       aria-hidden={labelled ? undefined : true}
       title={labelled ? name : undefined}
-      className={cn('inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold', SIZES[size], className)}
-      style={{ backgroundColor: `hsl(${hue} 55% 45% / 0.18)`, color: `hsl(${hue} 70% 62%)`, boxShadow: `inset 0 0 0 1px hsl(${hue} 60% 55% / 0.3)` }}
+      className={cn('avatar inline-flex shrink-0 select-none items-center justify-center rounded-full font-semibold', SIZES[size], className)}
+      style={{ '--avatar-hue': hue } as React.CSSProperties}
     >
       {initials(name)}
     </span>

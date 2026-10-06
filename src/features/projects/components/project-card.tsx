@@ -10,7 +10,7 @@ export function ProjectCard({ project }: { project: Project }) {
   return (
     <Link
       href={`/projects/${project.id}`}
-      className={cn('group flex h-full flex-col gap-4 rounded-lg border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/30', project.status === 'archived' && 'opacity-70')}
+      className={cn('group flex h-full flex-col gap-4 rounded-lg border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/30', project.status === 'archived' && 'border-dashed bg-muted/20')}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">

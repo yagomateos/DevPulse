@@ -2,7 +2,7 @@
   "name": "ai-engineering-workspace",
   "version": "1.0.0",
   "private": true,
-  "description": "AI Engineering Workspace \u2014 a senior-level React + Next.js SaaS frontend for engineering teams.",
+  "description": "AI Engineering Workspace — a senior-level React + Next.js SaaS frontend for engineering teams.",
   "engines": {
     "node": ">=22"
   },
@@ -68,6 +68,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@electric-sql/pglite": "^0.5.8",
     "@playwright/test": "^1.56.0",
     "@testing-library/dom": "^10.4.1",

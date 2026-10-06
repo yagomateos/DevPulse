@@ -61,7 +61,7 @@ export function IncidentTimeline({ events, startedAt }: IncidentTimelineProps) {
               aria-pressed={on}
               aria-label={`${meta.label} (${sorted.filter((e) => e.type === type).length})`}
               onClick={() => toggleType(type)}
-              className={cn('flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors', on ? meta.tone : 'border-dashed text-muted-foreground opacity-60 hover:opacity-100')}
+              className={cn('flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors', on ? meta.tone : 'border-dashed text-muted-foreground line-through decoration-muted-foreground/60 hover:text-foreground')}
             >
               <meta.icon className="size-3" aria-hidden />
               {meta.label}

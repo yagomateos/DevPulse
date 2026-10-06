@@ -48,3 +48,12 @@ describe('list query schema', () => {
     expect(pullRequestQuerySchema.safeParse({ sort: 'risk;drop' }).success).toBe(false);
   });
 });
+
+describe('settings schema', () => {
+  it('only accepts real IANA time zones', async () => {
+    const { generalSettingsSchema } = await import('./settings');
+    const base = { workspaceName: 'Acme', defaultLanding: 'dashboard', network: { latency: 'instant', failureRate: '0' } } as const;
+    expect(generalSettingsSchema.safeParse({ ...base, timezone: 'Asia/Tokyo' }).success).toBe(true);
+    expect(generalSettingsSchema.safeParse({ ...base, timezone: 'Mars/Olympus' }).success).toBe(false);
+  });
+});

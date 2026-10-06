@@ -65,7 +65,7 @@ export function ChartLegend({ series, hidden, onToggle }: { series: SeriesConfig
             type="button"
             aria-pressed={!off}
             onClick={() => onToggle(s.key)}
-            className={cn('flex items-center gap-1.5 rounded px-1.5 py-0.5 text-xs transition-opacity hover:bg-accent', off && 'opacity-40')}
+            className={cn('flex items-center gap-1.5 rounded px-1.5 py-0.5 text-xs transition-opacity hover:bg-accent', off && 'text-muted-foreground line-through')}
           >
             <span className="size-2 rounded-sm" style={{ background: s.color }} aria-hidden />
             {s.label}
@@ -73,5 +73,35 @@ export function ChartLegend({ series, hidden, onToggle }: { series: SeriesConfig
         );
       })}
     </div>
+  );
+}
+
+/**
+ * Screen-reader equivalent of a chart. The SVG itself is decorative
+ * (aria-hidden, not focusable); this table carries the actual data.
+ */
+export function ChartDataTable<T extends object>({ caption, rows, columns }: { caption: string; rows: T[]; columns: { key: keyof T & string; label: string; format?: (value: T[keyof T], row: T) => string }[] }) {
+  return (
+    <table className="sr-only">
+      <caption>{caption}</caption>
+      <thead>
+        <tr>
+          {columns.map((c) => (
+            <th key={c.key} scope="col">
+              {c.label}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((row, i) => (
+          <tr key={i}>
+            {columns.map((c) => (
+              <td key={c.key}>{c.format ? c.format(row[c.key], row) : String(row[c.key])}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

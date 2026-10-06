@@ -24,6 +24,8 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/components/ui/**', 'src/app/**', 'src/**/*.test.*'],
+      // Ratchet: CI fails if coverage drops below the current baseline.
+      thresholds: { lines: 57, statements: 56, branches: 50, functions: 48 },
     },
   },
 });

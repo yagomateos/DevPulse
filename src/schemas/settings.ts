@@ -1,8 +1,9 @@
 import { z } from 'zod';
+import { isValidTimeZone } from '@/lib/timezones';
 
 export const generalSettingsSchema = z.object({
   workspaceName: z.string().trim().min(2, 'Workspace name is required').max(48),
-  timezone: z.string().min(1),
+  timezone: z.string().min(1).refine(isValidTimeZone, 'Unknown time zone'),
   defaultLanding: z.enum(['dashboard', 'projects', 'ai']),
   network: z.object({
     latency: z.enum(['instant', 'realistic', 'slow']),

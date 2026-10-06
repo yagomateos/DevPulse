@@ -1,7 +1,7 @@
 'use client';
 
 import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { axisProps, CHART_COLORS, ChartTooltip } from '@/components/charts/chart-primitives';
+import { axisProps, CHART_COLORS, ChartDataTable, ChartTooltip } from '@/components/charts/chart-primitives';
 import type { PerformancePoint } from '@/types/domain';
 
 /** p95 latency around the release; the dashed line marks the deploy. */
@@ -10,7 +10,7 @@ export default function PerformanceSeriesChart({ series }: { series: Performance
     <figure>
       <div className="h-[240px]" aria-hidden>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={series} margin={{ left: -12, right: 12, top: 8 }}>
+          <LineChart data={series} margin={{ left: -12, right: 12, top: 8 }} accessibilityLayer={false}>
             <CartesianGrid vertical={false} stroke={CHART_COLORS.grid} strokeDasharray="3 3" />
             <XAxis dataKey="minute" tickFormatter={(m: number) => (m === 0 ? 'deploy' : `${m > 0 ? '+' : ''}${m}m`)} {...axisProps} />
             <YAxis yAxisId="lat" {...axisProps} width={48} tickFormatter={(v: number) => `${v}`} />
@@ -26,6 +26,15 @@ export default function PerformanceSeriesChart({ series }: { series: Performance
           </LineChart>
         </ResponsiveContainer>
       </div>
+      <ChartDataTable
+        caption="Latency and error rate around the deployment"
+        rows={series}
+        columns={[
+          { key: 'minute', label: 'Minutes from deploy', format: (v) => `${Number(v) > 0 ? '+' : ''}${v}` },
+          { key: 'p95LatencyMs', label: 'p95 latency (ms)' },
+          { key: 'errorRate', label: 'Error rate (%)' },
+        ]}
+      />
       <figcaption className="mt-2 flex gap-4 text-xs text-muted-foreground">
         <span className="flex items-center gap-1.5">
           <span className="h-0.5 w-3 bg-primary" aria-hidden /> p95 latency (ms)

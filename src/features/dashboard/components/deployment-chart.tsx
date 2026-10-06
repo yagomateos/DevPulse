@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { axisProps, CHART_COLORS, ChartLegend, ChartTooltip, type SeriesConfig } from '@/components/charts/chart-primitives';
+import { axisProps, CHART_COLORS, ChartDataTable, ChartLegend, ChartTooltip, type SeriesConfig } from '@/components/charts/chart-primitives';
 import { useDateFormatter } from '@/features/settings/components/workspace-preferences-provider';
 import type { DatePreset } from '@/lib/format';
 import type { DateRange, DeploymentSeriesPoint } from '@/types/domain';
@@ -37,7 +37,7 @@ export default function DeploymentChart({ data, range, projectId }: { data: Depl
       </div>
       <div className="h-[220px]" aria-hidden>
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ left: -24, right: 4, top: 4 }} barCategoryGap="20%">
+          <BarChart data={data} margin={{ left: -24, right: 4, top: 4 }} barCategoryGap="20%" accessibilityLayer={false}>
             <CartesianGrid vertical={false} stroke={CHART_COLORS.grid} strokeDasharray="3 3" />
             <XAxis dataKey="bucket" tickFormatter={label} {...axisProps} minTickGap={16} />
             <YAxis allowDecimals={false} {...axisProps} />
@@ -61,6 +61,15 @@ export default function DeploymentChart({ data, range, projectId }: { data: Depl
       <figcaption className="sr-only">
         {total} deployments in the period, {failed} failed.
       </figcaption>
+      <ChartDataTable
+        caption="Deployments per period"
+        rows={data}
+        columns={[
+          { key: 'bucket', label: 'Period', format: (v) => label(String(v)) },
+          { key: 'success', label: 'Successful' },
+          { key: 'failed', label: 'Failed' },
+        ]}
+      />
     </figure>
   );
 }

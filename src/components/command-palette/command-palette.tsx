@@ -45,7 +45,7 @@ export function CommandPalette() {
       <DialogContent className="top-[15%] translate-y-0 overflow-hidden p-0 sm:max-w-xl [&>button:last-child]:hidden">
         <DialogTitle className="sr-only">{mode === 'search' ? 'Search' : 'Command palette'}</DialogTitle>
         <DialogDescription className="sr-only">Type to search projects, pull requests, deployments, incidents and commands. Use arrow keys to navigate.</DialogDescription>
-        <Command shouldFilter={false} loop className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-item]]:h-9 [&_[cmdk-item]]:rounded-md">
+        <Command label="Command or search" shouldFilter={false} loop className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-item]]:h-9 [&_[cmdk-item]]:rounded-md">
           <CommandInput value={term} onValueChange={setTerm} placeholder={mode === 'search' ? 'Search projects, PRs, deployments, incidents, people…' : 'Type a command or search…'} aria-label="Command or search" />
           <CommandList className="max-h-[min(60vh,420px)] scrollbar-thin">
             {term && <GlobalSearch term={term} onSelect={(href) => run(() => router.push(href))} />}

@@ -7,7 +7,8 @@ import { SESSION_COOKIE, verifySession } from '@/server/auth/token';
  * (role, membership) still happen in layouts, route handlers and actions.
  */
 
-const PUBLIC_PATHS = ['/login', '/api/health'];
+// /api/test/reset guards itself (dev only, or token-protected in production builds).
+const PUBLIC_PATHS = ['/login', '/api/health', '/api/test/reset'];
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;

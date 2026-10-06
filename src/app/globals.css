@@ -16,7 +16,7 @@
     --card-foreground: 240 10% 4%;
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 4%;
-    --primary: 234 89% 60%;
+    --primary: 234 72% 50%;
     --primary-foreground: 0 0% 100%;
     --secondary: 240 5% 96%;
     --secondary-foreground: 240 6% 10%;
@@ -24,17 +24,17 @@
     --muted-foreground: 240 4% 40%;
     --accent: 240 5% 94%;
     --accent-foreground: 240 6% 10%;
-    --destructive: 0 72% 46%;
+    --destructive: 0 74% 40%;
     --destructive-foreground: 0 0% 100%;
-    --success: 152 70% 30%;
+    --success: 152 80% 22%;
     --success-foreground: 0 0% 100%;
-    --warning: 32 95% 38%;
+    --warning: 28 95% 30%;
     --warning-foreground: 0 0% 100%;
-    --info: 204 90% 38%;
+    --info: 204 90% 30%;
     --info-foreground: 0 0% 100%;
     --border: 240 6% 90%;
     --input: 240 6% 88%;
-    --ring: 234 89% 60%;
+    --ring: 234 72% 50%;
     --chart-1: 234 89% 62%;
     --chart-2: 152 60% 40%;
     --chart-3: 32 95% 48%;
@@ -54,7 +54,7 @@
     --card-foreground: 240 5% 93%;
     --popover: 240 5% 8%;
     --popover-foreground: 240 5% 93%;
-    --primary: 234 92% 70%;
+    --primary: 234 95% 76%;
     --primary-foreground: 240 10% 6%;
     --secondary: 240 4% 12%;
     --secondary-foreground: 240 5% 93%;
@@ -72,7 +72,7 @@
     --info-foreground: 240 10% 6%;
     --border: 240 4% 15%;
     --input: 240 4% 18%;
-    --ring: 234 92% 70%;
+    --ring: 234 95% 76%;
     --chart-1: 234 92% 70%;
     --chart-2: 152 58% 52%;
     --chart-3: 38 92% 58%;
@@ -112,6 +112,20 @@
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
     }
+  }
+}
+
+@layer components {
+  /* Generated avatars: hue per person, lightness per theme (AA contrast in both). */
+  .avatar {
+    background-color: hsl(var(--avatar-hue) 70% 92%);
+    color: hsl(var(--avatar-hue) 70% 26%);
+    box-shadow: inset 0 0 0 1px hsl(var(--avatar-hue) 50% 70% / 0.6);
+  }
+  .dark .avatar {
+    background-color: hsl(var(--avatar-hue) 40% 20%);
+    color: hsl(var(--avatar-hue) 85% 80%);
+    box-shadow: inset 0 0 0 1px hsl(var(--avatar-hue) 50% 45% / 0.5);
   }
 }
 

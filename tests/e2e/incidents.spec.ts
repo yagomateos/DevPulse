@@ -24,7 +24,7 @@ test('declares an incident from the command palette and updates its status', asy
 
 test('investigates an incident with AI', async ({ authed: page }) => {
   await page.goto('/projects/orion-gateway/incidents/inc-42');
-  await page.getByRole('button', { name: /investigate with ai|re-run analysis/i }).click();
+  await page.getByRole('button', { name: 'Investigate with AI' }).click();
   await expect(page.getByText('Likely cause')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByRole('link', { name: /deployment #128 preceded/i })).toBeVisible();
 });

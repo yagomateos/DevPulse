@@ -17,3 +17,8 @@ export function verifyPassword(userId: string, password: string) {
 export function setPassword(userId: string, password: string) {
   passwords().set(userId, password);
 }
+
+/** Test helper: back to the demo password for everyone. */
+export function resetPasswords() {
+  passwords().clear();
+}

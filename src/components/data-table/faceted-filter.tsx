@@ -69,7 +69,7 @@ export function DataTableFacetedFilter({ title, options, selected, onChange }: P
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-0" align="start">
-        <Command>
+        <Command label={`Filter ${title}`}>
           <CommandInput placeholder={title} aria-label={`Filter ${title}`} />
           <CommandList>
             <CommandEmpty>No results.</CommandEmpty>
