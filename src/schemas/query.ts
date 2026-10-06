@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 import {
   DATE_RANGES,
   DEPLOYMENT_STATUSES,

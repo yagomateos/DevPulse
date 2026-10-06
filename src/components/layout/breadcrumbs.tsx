@@ -1,12 +1,13 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
 import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Fragment } from 'react';
 import { cn } from '@/lib/utils';
-import { projectQueries } from '@/services/projects';
+import { useCachedQueryData } from '@/hooks/use-cached-query-data';
+import { queryKeys } from '@/lib/query-keys';
+import type { Project } from '@/types/domain';
 
 const LABELS: Record<string, string> = {
   dashboard: 'Dashboard',
@@ -36,7 +37,8 @@ export function useBreadcrumbs(): Crumb[] {
   const pathname = usePathname();
   const segments = pathname.split('/').filter(Boolean);
   const projectId = segments[0] === 'projects' ? segments[1] : undefined;
-  const { data: project } = useQuery({ ...projectQueries.detail(projectId ?? ''), enabled: !!projectId });
+  // The project layout hydrates this query; read it without creating it (see hook docs).
+  const project = useCachedQueryData<Project>(queryKeys.projects.detail(projectId ?? ''), !!projectId);
 
   return segments.map((segment, i) => {
     const href = `/${segments.slice(0, i + 1).join('/')}`;

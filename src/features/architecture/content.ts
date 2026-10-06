@@ -50,7 +50,7 @@ export const DECISIONS: { question: string; answer: string }[] = [
   },
   {
     question: 'How is performance managed?',
-    answer: 'Server rendering + streaming for first paint; dynamic imports for Recharts, the markdown renderer and dialog forms; optimizePackageImports for icons; memoised table columns and chat messages (only the streaming message re-renders per token); useDeferredValue for log filtering; debounced, abortable search; URL updates via the History API to avoid server round trips; and query caching with sensible stale times.',
+    answer: 'Server rendering + streaming for first paint, with every query a page needs hydrated above its consumers (CLS 0); dynamic imports for Recharts, the markdown renderer and dialog forms, and charts mounted only when scrolled into view; namespace Zod imports so locale files are tree-shaken; optimizePackageImports for icons; memoised table columns and chat messages (only the streaming message re-renders per token); useDeferredValue for log filtering; debounced, abortable search; URL updates via the History API to avoid server round trips; and query caching with sensible stale times.',
   },
 ];
 

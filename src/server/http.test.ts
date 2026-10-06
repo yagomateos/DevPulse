@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { NextRequest } from 'next/server';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { z } from 'zod';
+import * as z from 'zod';
 import { HttpError } from './auth/session';
 import { parseBody, route } from './http';
 

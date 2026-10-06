@@ -14,7 +14,7 @@ export function ProjectCard({ project }: { project: Project }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate text-sm font-semibold group-hover:text-primary">{project.name}</h3>
+          <h2 className="truncate text-sm font-semibold group-hover:text-primary">{project.name}</h2>
           <p className="truncate font-mono text-xs text-muted-foreground">{project.repository}</p>
         </div>
         <HealthScore score={project.healthScore} size={34} />

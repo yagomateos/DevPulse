@@ -37,7 +37,7 @@ export default function PerformanceChart({ data, range }: { data: PerformanceSer
             <XAxis dataKey="bucket" tickFormatter={label} {...axisProps} minTickGap={16} />
             <YAxis {...axisProps} tickFormatter={(v: number) => (metric === 'errorRate' ? `${v}%` : `${v}`)} width={48} />
             <Tooltip content={({ active, payload, label: l }) => <ChartTooltip active={active} payload={payload} label={l} formatLabel={label} formatValue={(v) => config.format(v)} />} />
-            <Line type="monotone" dataKey={metric} name={config.label} stroke={config.color} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+            <Line isAnimationActive={false} type="monotone" dataKey={metric} name={config.label} stroke={config.color} strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>

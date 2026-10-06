@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { LoadingSkeleton } from '@/components/feedback/loading-skeleton';
 import { QueryState } from '@/components/feedback/query-state';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { LazyMount } from '@/components/shared/lazy-mount';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDashboardFilters } from '../hooks/use-dashboard-filters';
 import { useDeploymentSeries, usePerformanceSeries } from '../hooks/use-metrics';
@@ -24,7 +25,11 @@ export function DeploymentChartPanel() {
       </CardHeader>
       <div className="px-4 pb-4">
         <QueryState query={series} loading={<LoadingSkeleton variant="chart" />} compactError>
-          {(data) => <DeploymentChart data={data} range={query.range} projectId={query.projectId} />}
+          {(data) => (
+            <LazyMount fallback={chartFallback()}>
+              <DeploymentChart data={data} range={query.range} projectId={query.projectId} />
+            </LazyMount>
+          )}
         </QueryState>
       </div>
     </Card>
@@ -42,7 +47,11 @@ export function PerformanceChartPanel() {
       </CardHeader>
       <div className="px-4 pb-4">
         <QueryState query={series} loading={<LoadingSkeleton variant="chart" />} compactError>
-          {(data) => <PerformanceChart data={data} range={query.range} />}
+          {(data) => (
+            <LazyMount fallback={chartFallback()}>
+              <PerformanceChart data={data} range={query.range} />
+            </LazyMount>
+          )}
         </QueryState>
       </div>
     </Card>

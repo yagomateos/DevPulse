@@ -12,7 +12,7 @@ const { members } = createDataset();
 function setup(role: 'ADMIN' | 'MANAGER' = 'ADMIN') {
   const queryClient = createTestQueryClient();
   queryClient.setQueryData(queryKeys.team.all, members);
-  return { queryClient, ...renderWithProviders(<TeamTable />, { queryClient, role }) };
+  return renderWithProviders(<TeamTable />, { queryClient, role });
 }
 
 const row = (name: string) => screen.getByRole('row', { name: new RegExp(name) });

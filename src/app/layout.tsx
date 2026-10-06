@@ -3,8 +3,10 @@ import { Inter, JetBrains_Mono } from 'next/font/google';
 import { Providers } from '@/components/providers/providers';
 import './globals.css';
 
-const sans = Inter({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
-const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap' });
+// `optional` avoids a late font swap repaint (which delayed LCP on slow
+// networks); the size-adjusted fallback is used until the font is cached.
+const sans = Inter({ subsets: ['latin'], variable: '--font-sans', display: 'optional' });
+const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'optional', preload: false });
 
 export const metadata: Metadata = {
   title: { default: 'AI Engineering Workspace', template: '%s · AI Engineering Workspace' },

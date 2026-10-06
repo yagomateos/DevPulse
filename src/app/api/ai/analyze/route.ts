@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
+import * as z from 'zod';
 import { AI_ANALYSIS_KINDS } from '@/schemas/ai';
 import { runAnalysis } from '@/server/ai/analyze';
 import { requirePermission, requireSession } from '@/server/auth/session';

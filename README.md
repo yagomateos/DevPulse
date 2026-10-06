@@ -190,24 +190,41 @@ URL updates go through the History API, which the App Router keeps in sync with 
   - the palette (`⌘K`, `/`) and `g` + key navigation;
   - table rows and timeline filters;
   - `aria-pressed` toggles on interactive controls.
-- Visible focus rings, colour tokens designed for AA contrast in both themes (not yet audited with an automated tool) and `prefers-reduced-motion` support.
+- Visible focus rings, AA-contrast colour tokens in both themes and `prefers-reduced-motion` support.
+
+**Accessibility audit**
+- `tests/e2e/a11y.spec.ts` runs **axe-core** (WCAG 2.0/2.1 A + AA) on the login page and 12 workspace screens in both themes, with zero violations. Fixes it drove: AA contrast for semantic tokens and avatars, no opacity-dimmed text, screen-reader data tables for every chart, ARIA roles.
+- Lighthouse accessibility: **100** on every measured page.
 
 **Performance**
-- Server rendering and streaming.
-- `next/dynamic` for Recharts, the markdown renderer and dialog forms.
-- `optimizePackageImports` for icon and chart packages.
-- `useDeferredValue` for log filtering.
-- Debounced, abortable search.
-- Query caching with stale times that fit each data type.
+- Server rendering and streaming; every client query a page needs is hydrated *above* its consumers, so pages server-render with data (CLS **0**).
+- `next/dynamic` for Recharts, the markdown renderer and dialog forms; charts additionally mount only when scrolled into view (`LazyMount`, IntersectionObserver).
+- `import * as z from 'zod'` lets the bundler drop Zod's locale files (−58 kB gzip on every form page); `jitless` mode keeps Zod compatible with the CSP.
+- `next/font` with `display: optional` (no late font-swap repaint), `optimizePackageImports`, chart animations off, `useDeferredValue` for log filtering, debounced and abortable search, query caching.
+
+Measured on the production build (`npm run build && npm start`, mobile emulation):
+
+| Page | Lighthouse perf (simulated / observed) | A11y | Best practices | CLS | First-load JS (gzip) |
+| --- | --- | --- | --- | --- | --- |
+| `/login` | 99 | 100 | 100 | 0 | 240 kB |
+| `/dashboard` | 88 / 91 | 100 | 100 | 0 | 425 kB (incl. charts) |
+| `/projects` | 87 | 100 | 100 | 0 | 291 kB |
+| PR #312 | 88 | 100 | 100 | 0 | 342 kB |
+| Deployment #128 | 88 | 100 | 100 | 0 | 271 kB |
+| INC-42 | 95 | 100 | 100 | 0 | 317 kB |
+| `/architecture` | 90 / 98 | 100 | 100 | 0 | 256 kB |
+
+Lighthouse's simulated mode reports LCP ≈ 3.3–3.9 s on workspace pages; with observed (DevTools) throttling LCP equals FCP at ≈ 1.7 s. SEO is intentionally low: the app sends `noindex`. Roughly 110 kB of every first load is React + the Next.js runtime.
 
 ## Testing
 
 ```bash
-npm test              # Vitest: unit + component + SQL integration (78 tests)
+npm test              # Vitest: unit + component + SQL integration (115 tests, coverage ratchet)
 npm run test:coverage
-npm run test:e2e      # Playwright: desktop + mobile journeys (14 tests)
+npm run test:e2e      # Playwright: journeys + axe audit, desktop & mobile (17 tests)
 ```
 
+- **Live LLM path** is tested against a fake OpenAI-compatible provider: strict JSON schema in the request, Zod validation of the response (502 on mismatch), the tool-calling loop with citations, SSE streaming and provider errors.
 - **Unit tests** cover permissions, schemas, time-zone formatting, the session token (including tampering and expiry), login rate limiting, notification preferences, mock integrations, the memory repository and the demo AI model. A separate test parses NDJSON split across network chunks.
 - **Component tests** (RTL + user-event) cover behaviour, not just rendering:
   - DataTable: sorting, debounced search, facets, column visibility, keyboard navigation, selection, loading and error states;
@@ -216,7 +233,9 @@ npm run test:e2e      # Playwright: desktop + mobile journeys (14 tests)
   - the dashboard metric grid: URL-driven query, error recovery;
   - the create-incident form: client and server validation;
   - the projects grid/list toggle;
-  - `PermissionGate`, `useChat` (streaming and retry) and `useMediaQuery`.
+  - `PermissionGate`, `useChat` (streaming and retry) and `useMediaQuery`;
+  - the Combobox, command palette, general settings, team optimistic rollback, login form and prompt input;
+  - the route-handler wrapper (error mapping, origin check) and the proxy.
 - **SQL integration test.** It applies the generated Drizzle migration to **PGlite**, a real Postgres engine running as WASM, seeds it and checks that the Postgres repository behaves like the in-memory one.
 - **Playwright journeys:**
   - login and redirect-back, invalid credentials, login rate limiting, unauthorised API access, logout;
@@ -229,7 +248,7 @@ npm run test:e2e      # Playwright: desktop + mobile journeys (14 tests)
   - global search with the keyboard;
   - mobile drawer and card layouts.
 
-The same 14 journeys pass against `next dev`, against the standalone production build (`npm run build && npm start`, as CI runs them) and against the Docker image backed by PostgreSQL.
+Each run starts from a clean dataset (a dev-only / token-protected reset endpoint is called in Playwright's global setup). The journeys pass against `next dev`, against the standalone production build (`npm run build && npm start`, as CI runs them) and against the Docker image backed by PostgreSQL.
 
 ## Running locally
 

@@ -44,6 +44,7 @@ export default function DeploymentChart({ data, range, projectId }: { data: Depl
             <Tooltip cursor={{ fill: 'hsl(var(--accent))', opacity: 0.6 }} content={({ active, payload, label: l }) => <ChartTooltip active={active} payload={payload} label={l} formatLabel={label} />} />
             {SERIES.map((s, i) => (
               <Bar
+                isAnimationActive={false}
                 key={s.key}
                 dataKey={s.key}
                 name={s.label}

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 import { ROLES } from '@/types/domain';
 
 export const inviteMemberSchema = z.object({

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
+import * as z from 'zod';
 import { requireSession } from '@/server/auth/session';
 import { parseBody, route } from '@/server/http';
 import { applyNotificationPreferences } from '@/server/notifications';

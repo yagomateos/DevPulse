@@ -36,7 +36,7 @@ export function TopBar() {
         <Button variant="ghost" size="icon-sm" className="md:hidden" onClick={() => showPalette('search')} aria-label="Search">
           <Search />
         </Button>
-        <Button variant="outline" size="sm" onClick={() => askAI()} className="gap-1.5" aria-keyshortcuts="Meta+J Control+J">
+        <Button variant="outline" size="sm" onClick={() => askAI()} className="gap-1.5" aria-keyshortcuts="Meta+J Control+J" aria-label="Ask AI">
           <Sparkles className="text-primary" />
           <span className="hidden sm:inline">Ask AI</span>
         </Button>

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 import { isValidTimeZone } from '@/lib/timezones';
 
 export const generalSettingsSchema = z.object({

@@ -20,18 +20,46 @@ export const metadata: Metadata = { title: 'Dashboard' };
 
 /** Streams independently: metrics render as soon as they resolve. */
 async function MetricsSection({ query }: { query: DashboardQuery }) {
+  const metrics = await (await getRepository()).analytics.metrics(query);
+  return (
+    <Hydrate queries={[[queryKeys.dashboard.metrics(query), metrics]]}>
+      <MetricGrid />
+    </Hydrate>
+  );
+}
+
+/**
+ * Charts render inside the boundary that hydrates their series, so the
+ * server and the client always render the same branch (no hydration race).
+ */
+async function ChartsSection({ query, charts }: { query: DashboardQuery; charts: ('deployments' | 'performance')[] }) {
   const repo = await getRepository();
-  const [metrics, deploys, perf] = await Promise.all([repo.analytics.metrics(query), repo.analytics.deploymentSeries(query), repo.analytics.performanceSeries(query)]);
+  const [deploys, perf] = await Promise.all([
+    charts.includes('deployments') ? repo.analytics.deploymentSeries(query) : null,
+    charts.includes('performance') ? repo.analytics.performanceSeries(query) : null,
+  ]);
   return (
     <Hydrate
       queries={[
-        [queryKeys.dashboard.metrics(query), metrics],
-        [queryKeys.dashboard.deployments(query), deploys],
-        [queryKeys.dashboard.performance(query), perf],
+        ...(deploys ? ([[queryKeys.dashboard.deployments(query), deploys]] as const) : []),
+        ...(perf ? ([[queryKeys.dashboard.performance(query), perf]] as const) : []),
       ]}
     >
-      <MetricGrid />
+      <div className={charts.length > 1 ? 'grid gap-4 lg:grid-cols-2' : undefined}>
+        {charts.includes('deployments') && <DeploymentChartPanel />}
+        {charts.includes('performance') && <PerformanceChartPanel />}
+      </div>
     </Hydrate>
+  );
+}
+
+function ChartsFallback({ count }: { count: number }) {
+  return (
+    <div className={count > 1 ? 'grid gap-4 lg:grid-cols-2' : undefined}>
+      {Array.from({ length: count }).map((_, i) => (
+        <LoadingSkeleton key={i} variant="chart" />
+      ))}
+    </div>
   );
 }
 
@@ -51,10 +79,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const firstName = session?.user.name.split(' ')[0];
 
   const charts = (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <DeploymentChartPanel />
-      <PerformanceChartPanel />
-    </div>
+    <Suspense fallback={<ChartsFallback count={2} />}>
+      <ChartsSection query={query} charts={['deployments', 'performance']} />
+    </Suspense>
   );
 
   return (
@@ -87,7 +114,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           ),
           delivery: (
             <>
-              <DeploymentChartPanel />
+              <Suspense fallback={<ChartsFallback count={1} />}>
+                <ChartsSection query={query} charts={['deployments']} />
+              </Suspense>
               <SectionCard title="Recent deployments" href="/deployments">
                 <DeploymentList projectId={query.projectId} environment={query.environment} limit={10} />
               </SectionCard>
@@ -95,7 +124,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           ),
           reliability: (
             <>
-              <PerformanceChartPanel />
+              <Suspense fallback={<ChartsFallback count={1} />}>
+                <ChartsSection query={query} charts={['performance']} />
+              </Suspense>
               <SectionCard title="Active incidents" href="/incidents">
                 <IncidentList projectId={query.projectId} limit={10} />
               </SectionCard>

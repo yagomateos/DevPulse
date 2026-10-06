@@ -21,8 +21,8 @@ export default function PerformanceSeriesChart({ series }: { series: Performance
               )}
             />
             <ReferenceLine x={0} yAxisId="lat" stroke={CHART_COLORS.axis} strokeDasharray="4 4" label={{ value: 'Deploy', position: 'insideTopRight', fill: CHART_COLORS.axis, fontSize: 11 }} />
-            <Line yAxisId="lat" type="monotone" dataKey="p95LatencyMs" name="p95 latency" stroke={CHART_COLORS.primary} strokeWidth={2} dot={false} />
-            <Line yAxisId="err" type="monotone" dataKey="errorRate" name="Error rate" stroke={CHART_COLORS.danger} strokeWidth={1.5} dot={false} strokeDasharray="3 2" />
+            <Line isAnimationActive={false} yAxisId="lat" type="monotone" dataKey="p95LatencyMs" name="p95 latency" stroke={CHART_COLORS.primary} strokeWidth={2} dot={false} />
+            <Line isAnimationActive={false} yAxisId="err" type="monotone" dataKey="errorRate" name="Error rate" stroke={CHART_COLORS.danger} strokeWidth={1.5} dot={false} strokeDasharray="3 2" />
           </LineChart>
         </ResponsiveContainer>
       </div>

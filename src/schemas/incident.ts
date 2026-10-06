@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 import { INCIDENT_SEVERITIES, INCIDENT_STATUSES } from '@/types/domain';
 
 export const createIncidentSchema = z.object({

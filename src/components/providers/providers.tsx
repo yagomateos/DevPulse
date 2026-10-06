@@ -1,5 +1,6 @@
 'use client';
 
+import '@/lib/zod-config';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'next-themes';
 import { useEffect, type ReactNode } from 'react';
