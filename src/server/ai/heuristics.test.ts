@@ -31,6 +31,14 @@ describe('demo model: pull request analysis', () => {
     expect(result.findings.some((f) => f.title === 'Effect subscribes without cleanup')).toBe(true);
   });
 
+  it('does not ask for tests on docs-only changes, but still does for code', () => {
+    const file = (path: string) => ({ path, status: 'modified' as const, additions: 1, deletions: 1, hunks: [] });
+    const base = { ...pr847, comments: [], checks: [], labels: [], tests: { passed: 0, failed: 0, skipped: 0 } };
+    const missingTests = (paths: string[]) => analyzePullRequestHeuristic({ ...base, files: paths.map(file) }).findings.some((f) => f.title === 'No tests accompany the change');
+    expect(missingTests(['README.md', 'docs/setup.md', 'LICENSE', 'package-lock.json', 'public/logo.svg'])).toBe(false);
+    expect(missingTests(['README.md', 'src/app.ts'])).toBe(true);
+  });
+
   it('maps scores to risk levels', () => {
     expect([10, 45, 70, 90].map(riskLevelFromScore)).toEqual(['low', 'medium', 'high', 'critical']);
   });
