@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint · Typecheck · Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test:coverage
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: coverage/
+
+  e2e:
+    name: Build · Playwright (${{ matrix.data-source }})
+    runs-on: ubuntu-latest
+    needs: quality
+    strategy:
+      fail-fast: false
+      matrix:
+        data-source: [memory, postgres]
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: aiw
+          POSTGRES_PASSWORD: aiw
+          POSTGRES_DB: aiw
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U aiw"
+          --health-interval 5s
+          --health-retries 10
+    env:
+      CI: 'true'
+      AUTH_SECRET: ci-only-secret
+      DATA_SOURCE: ${{ matrix.data-source }}
+      DATABASE_URL: postgres://aiw:aiw@localhost:5432/aiw
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Migrate and seed
+        if: matrix.data-source == 'postgres'
+        run: npm run db:migrate && npm run db:seed
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report-${{ matrix.data-source }}
+          path: playwright-report/
+
+  docker:
+    name: Docker images
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build app image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runner
+          push: false
+          tags: ai-engineering-workspace:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Build migrator image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: migrator
+          push: false
+          cache-from: type=gha

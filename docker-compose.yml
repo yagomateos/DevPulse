@@ -1,0 +1,48 @@
+# Full stack: the app backed by PostgreSQL.
+#   export AUTH_SECRET=$(openssl rand -hex 32)
+#   docker compose up -d db
+#   docker compose run --rm migrate      # apply migrations + seed demo data
+#   docker compose up -d --build app     # http://localhost:3000
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: aiw
+      POSTGRES_PASSWORD: aiw
+      POSTGRES_DB: aiw
+    ports: ['5432:5432']
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U aiw']
+      interval: 5s
+      retries: 10
+
+  migrate:
+    build:
+      context: .
+      target: migrator
+    environment:
+      DATABASE_URL: postgres://aiw:aiw@db:5432/aiw
+    depends_on:
+      db: { condition: service_healthy }
+    profiles: [tools]
+
+  app:
+    build:
+      context: .
+      target: runner
+    ports: ['${APP_PORT:-3000}:3000']
+    environment:
+      DATA_SOURCE: postgres
+      DATABASE_URL: postgres://aiw:aiw@db:5432/aiw
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET (e.g. export AUTH_SECRET=$(openssl rand -hex 32))}
+      INSECURE_COOKIES: 'true' # plain HTTP on localhost
+      DEMO_MODE: ${DEMO_MODE:-true}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.openai.com/v1}
+      AI_MODEL: ${AI_MODEL:-gpt-4.1-mini}
+    depends_on:
+      db: { condition: service_healthy }
+
+volumes:
+  pgdata:
