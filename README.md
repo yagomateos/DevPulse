@@ -1,5 +1,7 @@
 # AI Engineering Workspace
 
+[![CI](https://github.com/yagomateos/DevPulse/actions/workflows/ci.yml/badge.svg)](https://github.com/yagomateos/DevPulse/actions/workflows/ci.yml)
+
 A SaaS workspace for software teams: projects, pull requests, deployments and incidents, with AI analysis built into each of those workflows.
 
 The project is a **frontend engineering showcase**. Most of the work is in the React and Next.js architecture: composition, state ownership, data fetching, forms, a reusable data table, accessibility, performance and tests. The backend stays deliberately small. Its only job is to support the UI behind a typed seam that can be swapped out.
@@ -302,6 +304,6 @@ All variables are optional. See [`.env.example`](.env.example).
 
 - **Node hosting.** `npm run build && npm start`. The build emits Next.js `standalone` output and copies its static assets; `npm start` runs `node .next/standalone/server.js` (honours `PORT`/`HOSTNAME`). Set `AUTH_SECRET` and, optionally, the AI and database variables.
 - **Docker.** A multi-stage `Dockerfile` produces a ~310 MB non-root `runner` image with a healthcheck, plus a `migrator` image that applies Drizzle migrations and seeds data.
-- **CI.** `.github/workflows/ci.yml` runs lint, typecheck and unit tests with coverage; then the production build plus Playwright against both the in-memory store and a PostgreSQL service; and builds both Docker images. The workflow has not run on GitHub yet — it will on the first push.
+- **CI.** `.github/workflows/ci.yml` runs lint, typecheck and unit tests with coverage; then the production build plus Playwright against both the in-memory store and a PostgreSQL service; and builds both Docker images. All jobs pass on GitHub Actions.
 
 The in-memory store resets when the server restarts. Use `DATA_SOURCE=postgres` for persistent data.
