@@ -8,7 +8,7 @@ export function Logo({ className, withText = true }: { className?: string; withT
           <path d="M4 17 10 7l4 7 2-3 4 6" />
         </svg>
       </span>
-      {withText && <span className="truncate text-sm font-semibold tracking-tight">AI Workspace</span>}
+      {withText && <span className="truncate text-sm font-semibold tracking-tight">DevPulse</span>}
     </span>
   );
 }

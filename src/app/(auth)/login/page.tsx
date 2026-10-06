@@ -34,7 +34,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       </section>
       <aside className="hidden border-l bg-muted/20 lg:flex lg:flex-col lg:justify-center lg:px-16" aria-label="Product overview">
         <div className="max-w-md space-y-6">
-          <p className="text-xs font-medium uppercase tracking-wider text-primary">AI Engineering Workspace</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-primary">DevPulse</p>
           <h2 className="text-2xl font-semibold tracking-tight text-balance">From pull request to production incident — with context at every step.</h2>
           <ul className="space-y-3 text-sm text-muted-foreground">
             <li>• Structured AI review of pull requests, grounded in the diff</li>

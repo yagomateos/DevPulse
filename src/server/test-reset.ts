@@ -5,14 +5,16 @@ import { resetPasswords } from './auth/credentials';
 import { resetMemoryStore } from './repositories/memory-repository';
 
 /**
- * Restores the pristine demo dataset so end-to-end runs are isolated and
- * repeatable. Only reachable in development, or in a production build when
- * TEST_RESET_TOKEN is configured (CI) and the request carries it.
+ * Restores the pristine demo dataset: keeps end-to-end runs isolated and lets
+ * the public demo refresh itself daily (Vercel Cron). Only reachable in
+ * development, with TEST_RESET_TOKEN (CI), or with the Vercel CRON_SECRET.
  */
-export function isResetAllowed(token: string | null) {
+export function isResetAllowed(token: string | null, authorization: string | null = null) {
   if (process.env.NODE_ENV !== 'production') return true;
   const expected = process.env.TEST_RESET_TOKEN;
-  return !!expected && token === expected;
+  if (expected && token === expected) return true;
+  const cronSecret = process.env.CRON_SECRET;
+  return !!cronSecret && authorization === `Bearer ${cronSecret}`;
 }
 
 export async function resetAllData() {

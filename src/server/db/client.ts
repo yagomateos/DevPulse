@@ -7,7 +7,8 @@ const globalDb = globalThis as unknown as { __aiwDb?: ReturnType<typeof drizzle<
 
 export function getDb(url = process.env.DATABASE_URL) {
   if (!url) throw new Error('DATABASE_URL is not set');
-  globalDb.__aiwDb ??= drizzle(postgres(url, { max: 5 }), { schema });
+  // prepare:false — required behind transaction-mode poolers (Neon / PgBouncer).
+  globalDb.__aiwDb ??= drizzle(postgres(url, { max: 5, prepare: false }), { schema });
   return globalDb.__aiwDb;
 }
 

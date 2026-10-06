@@ -1,8 +1,8 @@
 {
-  "name": "ai-engineering-workspace",
+  "name": "devpulse",
   "version": "1.0.0",
   "private": true,
-  "description": "AI Engineering Workspace — a senior-level React + Next.js SaaS frontend for engineering teams.",
+  "description": "DevPulse — a senior-level React + Next.js SaaS frontend for engineering teams.",
   "engines": {
     "node": ">=22"
   },

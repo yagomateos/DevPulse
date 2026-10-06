@@ -29,7 +29,7 @@ export function Sidebar() {
       )}
     >
       <div className={cn('flex h-12 items-center border-b px-3', !collapsed && 'xl:px-3')}>
-        <Link href="/dashboard" aria-label="AI Workspace home" className="rounded-md">
+        <Link href="/dashboard" aria-label="DevPulse home" className="rounded-md">
           <Logo withText={false} className={cn(!collapsed && 'xl:hidden')} />
           <Logo className={cn('hidden', !collapsed && 'xl:flex')} />
         </Link>
