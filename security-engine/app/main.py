@@ -12,6 +12,7 @@ from typing import Literal
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
 from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, field_validator
 
 app = FastAPI(
@@ -120,6 +121,11 @@ class RepoCheckResult(BaseModel):
     checked_at: str
     findings: list[Finding]
     notes: list[str]
+
+
+@app.get("/", include_in_schema=False)
+def index() -> FileResponse:
+    return FileResponse(os.path.join(os.path.dirname(__file__), "index.html"))
 
 
 @app.get("/health")
