@@ -62,3 +62,9 @@ def test_web_check_requires_allowlist():
         json={"host": "not-allowlisted.example", "authorized": True},
     )
     assert response.status_code == 403
+
+
+def test_root_serves_local_ui():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "VulnPilot Security Engine" in response.text
